@@ -1003,11 +1003,11 @@ function! s:ShowRemoteContext() " {{{
     " FIXME: Get the function stack and make better use of it.
     exec substitute(context,
           \ '^function \%('.s:FUNC_NAME_PAT.'\.\.\)*\('.s:FUNC_NAME_PAT.
-          \ '\), line \(\d\+\)$',
+          \ '\), en la línea \(\d\+\)$',
           \ 'let name = "\1" | let lineNo = "\2"', '')
     if name == ''
       exec substitute(context,
-            \ '^\([^,]\+\), line \(\d\+\)$',
+            \ '^\([^,]\+\), en la línea \(\d\+\)$',
             \ 'let name = "\1" | let lineNo = "\2"', '')
       let mode = g:breakpts#BM_SCRIPT
     endif
