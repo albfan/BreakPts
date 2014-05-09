@@ -222,8 +222,12 @@ function! s:DoAction() " {{{
   endif
   let browserMode = s:GetBrowserMode()
   if browserMode == g:breakpts#BM_BRKPTS
-    " FIXME: Won't work if not English.
-    if getline('.') =~ 'No breakpoints defined'
+    if $LANG =~ "es"
+      let str_not_def_bp = 'No se ha definido "breakpoints"'
+    else
+      let str_not_def_bp = 'No breakpoints defined'
+    endif
+    if getline('.') =~ str_not_def_bp
       return
     endif
     exec s:GetBrklistLineParser(getline('.'), 'name', 'mode')
@@ -289,18 +293,23 @@ let s:BRKPT_NR = '\%(^\|['."\n".']\+\)\s*\zs\d\+\ze\s\+\%(func\|file\)' .
       \ '\s\+\S\+\s\+line\s\+\d\+'
 " Mark breakpoints {{{
 function! s:MarkBreakPoints(name)
+  if $LANG =~ "es"
+    let str_line = 'línea'
+  else
+    let str_line = 'line'
+  endif
   let b:brkPtLines = []
   let brkPts = s:GetVimCmdOutput('breaklist')
   let pat = ''
   let browserMode = s:GetBrowserMode()
   if browserMode == g:breakpts#BM_FUNCTIONS
-    let pat = '\d\+\s\+func \zs\%(<SNR>\d\+_\)\?\k\+\ze\s\+line \d\+'
+    let pat = '\d\+\s\+func \zs\%(<SNR>\d\+_\)\?\k\+\ze\s\+'.str_line.' \d\+'
   elseif browserMode == g:breakpts#BM_FUNCTION
-    let pat = '\d\+\s\+func ' . a:name . '\s\+line \zs\d\+'
+    let pat = '\d\+\s\+func ' . a:name . '\s\+'.str_line.' \zs\d\+'
   elseif browserMode == g:breakpts#BM_SCRIPTS
-    let pat = '\d\+\s\+file \zs\f\+\ze\s\+line \d\+'
+    let pat = '\d\+\s\+file \zs\f\+\ze\s\+'.str_line.' \d\+'
   elseif browserMode == g:breakpts#BM_SCRIPT
-    let pat = '\d\+\s\+file \m' . escape(a:name, "\\") . '\M\s\+line \zs\d\+'
+    let pat = '\d\+\s\+file \m' . escape(a:name, "\\") . '\M\s\+'.str_line.' \zs\d\+'
   elseif browserMode == g:breakpts#BM_BRKPTS
     let pat = s:BRKPT_NR
   endif
@@ -532,7 +541,12 @@ function! breakpts#ClearAllBrkPts()
     call breakpts#ClearBPCounters()
     let breakList = s:GetVimCmdOutput('breaklist')
     " FIXME: lang dependent.
-    if breakList !~ 'No breakpoints defined'
+    if $LANG =~ "es"
+      let str_not_def_bp = 'No se ha definido "breakpoints"'
+    else
+      let str_not_def_bp = 'No breakpoints defined'
+    endif
+    if breakList !~ str_not_def_bp
       let clearCmds = substitute(breakList,
             \ '\(\d\+\)\%(\s\+\%(func\|file\)\)\@=' . "[^\n]*",
             \ ':breakdel \1', 'g')
@@ -547,8 +561,13 @@ function! breakpts#ClearAllBrkPts()
 endfunction
 
 function! s:GetBrklistLineParser(line, nameVar, modeVar)
+  if $LANG =~ "es"
+    let str_line = 'línea'
+  else
+    let str_line = 'line'
+  endif
   return substitute(a:line,
-        \ '^\s*\d\+\s\+\(\S\+\)\s\+\(.\{-}\)\s\+line\s\+\(\d\+\)$', "let ".
+        \ '^\s*\d\+\s\+\(\S\+\)\s\+\(.\{-}\)\s\+'.str_line.'\s\+\(\d\+\)$', "let ".
         \ a:modeVar."='\\1' | let ".a:nameVar."='\\2' | let lnum=\\3", '')
 endfunction
 " Add/Remove breakpoints }}}
@@ -1001,13 +1020,20 @@ function! s:ShowRemoteContext() " {{{
   if context != ''
     let mode = g:breakpts#BM_FUNCTION
     " FIXME: Get the function stack and make better use of it.
+    " TODO: Use an external i18n file/s to parse other languages 
+    if $LANG =~ "es"
+      let str_in_line = 'en la línea'
+    else
+      let str_in_line = 'in line'
+    endif
+
     exec substitute(context,
           \ '^function \%('.s:FUNC_NAME_PAT.'\.\.\)*\('.s:FUNC_NAME_PAT.
-          \ '\), en la línea \(\d\+\)$',
+          \ '\), '.str_in_line.' \(\d\+\)$',
           \ 'let name = "\1" | let lineNo = "\2"', '')
     if name == ''
       exec substitute(context,
-            \ '^\([^,]\+\), en la línea \(\d\+\)$',
+            \ '^\([^,]\+\), '.str_in_line.' \(\d\+\)$',
             \ 'let name = "\1" | let lineNo = "\2"', '')
       let mode = g:breakpts#BM_SCRIPT
     endif
@@ -1123,13 +1149,18 @@ function! s:_BreakIf()
     let __breakLine = v:throwpoint
   endtry
   if __breakLine =~# '^function '
+    if $LANG =~ "es"
+      let str_line = 'línea'
+    else
+      let str_line = 'line'
+    endif
     let __breakLine = substitute(__breakLine,
           \ '^function \%(\%(\k\|[<>]\|#\)\+\.\.\)*\(\%(\k\|[<>]\|#\)\+\), ' .
-          \     'line\s\+\(\d\+\)$',
+          \     str_line.'\s\+\(\d\+\)$',
           \ '\="func " . (submatch(2) + <offset>) . " " . submatch(1)', '')
   else
     let __breakLine = substitute(__breakLine,
-          \ '^\(.\{-}\), line\s\+\(\d\+\)$',
+          \ '^\(.\{-}\), '.str_line.'\s\+\(\d\+\)$',
           \ '\="file " . (submatch(2) + <offset>) . " " . submatch(1)', '')
   endif
   if __breakLine != ''
