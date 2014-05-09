@@ -621,8 +621,7 @@ function! s:GetScriptId()
 endfunction
 
 function! s:GetFuncName()
-  let funcName = expand('<cword>') " Treat any word as a possible function name.
-  " Any non-alpha except <>_: which are not allowed in the function name.
+  let funcName = getline('.') 
   if match(funcName, "[~`!@$%^&*()-+={}[\\]|\\;'\",.?/]") != -1
     let funcName = ''
   endif
