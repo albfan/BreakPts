@@ -179,7 +179,14 @@ function! s:List_script(curScriptId, curScript) " {{{
 endfunction " }}}
 
 function! s:List_function(sid, funcName) " {{{
-  let funcListing = s:GetVimCmdOutput('function ' . a:funcName)
+  
+  if (a:funcName+0 > 0) 
+    let funcName = '{'.a:funcName.'}'
+  else
+    let funcName = a:funcName
+  endif
+
+  let funcListing = s:GetVimCmdOutput('function ' . funcName)
   if funcListing == ""
     return
   endif
