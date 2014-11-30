@@ -14,7 +14,7 @@ the scriptids for your script are. It also defines a few convenience commands
 that take the place of Vim built-in commands and add Vim command-line
 completion feature.
 
-The plugin also provided utilties to create various conditional breakpoints
+The plugin also provided utilities to create various conditional breakpoints
 programmatically to help debug complex and iterative logic. You can set a
 condition, a skip count and an expire count for your breakpoint to be valid on
 any particular line.
@@ -65,6 +65,12 @@ OVERVIEW                                    *breakpts-overview*
 ==============================================================================
 
                                             *breakpts-installation*
+    Easy way: (Vundle)
+    - Add 
+            Plugin 'albfan/BreakPts' to ~/.vimrc
+    - Execute
+            :PluginInstall
+    Hard way:
     - To install, download the latest versions of these two plugins:
         breakpts: http://www.vim.org/script.php?script_id=618
         genutils:  http://vim.sourceforge.net/script.php?script_id=197
