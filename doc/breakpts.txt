@@ -448,9 +448,6 @@ breakpoints. >
 - It should be possible to run ctags to get all the local variables in the
   current function and automatically show their values. We should also
   be able to show the argument values automatically.
-- How about a :BPDEvaluate command that takes in an expression and
-  evaluates it in the remote vim and shows the result (using
-  remote_expr() to be safe)?
 - It should also be possible to create watch expressions to be evaluated
   everytime the context is refreshed (using the :BPEvaluation infra.).
 - How about opening an editable function listing window extracted from the

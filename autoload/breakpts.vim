@@ -1,10 +1,9 @@
 
-" Make sure line-continuations won't cause any problem. This will be restored
-"   at the end
+" Make sure line-continuations won't cause any problem. This will be restored at the end
 let s:save_cpo = &cpo
 set cpo&vim
 
-" Initialization {{{
+" Initizalization {{{
 
 if !exists('s:myBufNum')
 let s:myBufNum = -1
@@ -61,9 +60,9 @@ function! breakpts#BrowserMain(...) " {{{
       set isfname-=\
       set isfname-=[
       if exists('+shellslash')
-        exec "sp \\\\". escape(g:BreakPts_title, ' ')
+        exec "split \\\\". escape(g:BreakPts_title, ' ')
       else
-        exec "sp \\". escape(g:BreakPts_title, ' ')
+        exec "split \\". escape(g:BreakPts_title, ' ')
       endif
     finally
       let &isfname = _isf
@@ -72,7 +71,7 @@ function! breakpts#BrowserMain(...) " {{{
   else
     let buffer_win = bufwinnr(s:myBufNum)
     if buffer_win == -1
-      exec 'sb '. s:myBufNum
+      exec 'sbuffer '. s:myBufNum
       let s:opMode = 'user'
     else
       exec buffer_win . 'wincmd w'
@@ -791,7 +790,7 @@ function! s:SetupBuf(full)
   call genutils#SetupScratchBuffer()
   setlocal nowrap
   setlocal bufhidden=hide
-  setlocal isk+=< isk+=> isk+=: isk+=_ isk+=#
+  setlocal iskeyword+=< iskeyword+=> iskeyword+=: iskeyword+=_ iskeyword+=#
   set ft=vim
   " Don't make the <SNR> part look like an error.
   if hlID("vimFunctionError") != 0
@@ -855,6 +854,7 @@ function! s:SetupBuf(full)
   command! -buffer BPDNext :call <SID>ExecDebugCmd('next')
   command! -buffer BPDStep :call <SID>ExecDebugCmd('step')
   command! -buffer BPDFinish :call <SID>ExecDebugCmd('finish')
+  command! -buffer -nargs=1 BPDEvaluate :call <SID>EvaluateExpr(<f-args>)
 
   call s:DefMap("n", "ContKey", "<F5>", ":BPDCont<CR>")
   call s:DefMap("n", "QuitKey", "<S-F5>", ":BPDQuit<CR>")
@@ -863,6 +863,7 @@ function! s:SetupBuf(full)
   call s:DefMap("n", "FinishKey", "<S-F11>", ":BPDFinish<CR>")
   call s:DefMap("n", "ClearAllKey", "<C-S-F9>", ":BPClearAll<CR>")
   "call s:DefMap("n", "RunToCursorKey", "<C-F10>", ":BPDRunToCursor<CR>")
+  call s:DefMap("n", "EvaluateExpr", "<F8>", ":BPDEvaluate <C-R>=expand('<cword>')<CR>")
 
   " A bit of a setup for syntax colors.
   hi def link BreakPtsBreakLine WarningMsg
@@ -979,6 +980,13 @@ function! s:ExecCmd(cmd) " {{{
     silent! exec a:cmd
   endif
   return 0
+endfunction " }}}
+
+function! s:EvaluateExpr(expr) " {{{
+    if s:remoteServName !=# '.' &&
+          \ remote_expr(s:remoteServName, 'mode()') ==# 'c'
+      echo remote_expr(s:remoteServName, a:expr)
+    endif
 endfunction " }}}
 
 function! s:ExecDebugCmd(cmd) " {{{
