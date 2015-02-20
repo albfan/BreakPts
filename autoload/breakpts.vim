@@ -855,14 +855,14 @@ function! s:SetupBuf(full)
   command! -buffer BPDFinish :call <SID>ExecDebugCmd('finish')
   command! -buffer -nargs=1 BPDEvaluate :call <SID>EvaluateExpr(<f-args>)
 
-  call s:DefMap("n", "ContKey", "<F5>", ":BPDCont<CR>")
-  call s:DefMap("n", "QuitKey", "<S-F5>", ":BPDQuit<CR>")
-  call s:DefMap("n", "NextKey", "<F12>", ":BPDNext<CR>")
-  call s:DefMap("n", "StepKey", "<F11>", ":BPDStep<CR>")
-  call s:DefMap("n", "FinishKey", "<S-F11>", ":BPDFinish<CR>")
-  call s:DefMap("n", "ClearAllKey", "<C-S-F9>", ":BPClearAll<CR>")
-  "call s:DefMap("n", "RunToCursorKey", "<C-F10>", ":BPDRunToCursor<CR>")
-  call s:DefMap("n", "EvaluateExpr", "<F8>", ":BPDEvaluate <C-R>=expand('<cword>')<CR>")
+  call s:DefMap("n", "ContKey", "<F5>", ":BPDCont<CR>", 1)
+  call s:DefMap("n", "QuitKey", "<S-F5>", ":BPDQuit<CR>", 1)
+  call s:DefMap("n", "NextKey", "<F12>", ":BPDNext<CR>", 1)
+  call s:DefMap("n", "StepKey", "<F11>", ":BPDStep<CR>", 1)
+  call s:DefMap("n", "FinishKey", "<S-F11>", ":BPDFinish<CR>", 1)
+  call s:DefMap("n", "ClearAllKey", "<C-S-F9>", ":BPClearAll<CR>", 1)
+  "call s:DefMap("n", "RunToCursorKey", "<C-F10>", ":BPDRunToCursor<CR>", 1)
+  call s:DefMap("n", "EvaluateExpr", "<F8>", ":BPDEvaluate <C-R>=expand('<cword>')<CR>", 0)
 
   " A bit of a setup for syntax colors.
   highlight default link BreakPtsBreakLine WarningMsg
@@ -894,13 +894,17 @@ function! s:Quit()
   endif
 endfunction " }}}
 
-function! s:DefMap(mapType, mapKeyName, defaultKey, cmdStr) " {{{
+function! s:DefMap(mapType, mapKeyName, defaultKey, cmdStr, silent) " {{{
   let key = maparg('<Plug>BreakPts' . a:mapKeyName)
   " If user hasn't specified a key, use the default key passed in.
   if key == ""
     let key = a:defaultKey
   endif
-  exec a:mapType . "noremap <buffer> <silent> " . key a:cmdStr
+  let specialarg = " <buffer> "
+  if a:silent !=0
+    let specialarg .= "<silent> "
+  endif
+  exec a:mapType . "noremap" . specialarg . key a:cmdStr
 endfunction " DefMap " }}}
 
 " Sometimes there is huge amount white-space in the front for some reason.
