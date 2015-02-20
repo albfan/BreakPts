@@ -5,7 +5,7 @@
                  Author: Hari Krishna Dara (hari.vim at gmail dot com)
 
 The plugin provides a few features for debugging Vim scripts that are similar
-to what IDEs normally have, such as browing source, managing breatpoints etc.
+to what IDEs normally have, such as browsing source, managing breakpoints etc.
 Setting breakpoints visually in functions is very important as you need to
 specify the exact line number for the line you are interested in (which often
 is difficult to find out if you use |line-continuation| characters to format
@@ -19,7 +19,7 @@ programmatically to help debug complex and iterative logic. You can set a
 condition, a skip count and an expire count for your breakpoint to be valid on
 any particular line.
 
-You can also simply use the plugin to browse Vim sripts and functions. It
+You can also simply use the plugin to browse Vim scripts and functions. It
 provides a browser history type of features to drill into the code, by
 navigating the function calls and return back to the previous function at any
 time.
@@ -89,7 +89,7 @@ OVERVIEW                                    *breakpts-overview*
     Optional:
     - Take a look at the |breakpts-winmanager| to configure with winmanager.
     - Choose a hotkey as described in |breakpts-usage|.
-    - Considier installation the following two optional plugins:
+    - Consider installation the following two optional plugins:
       - If cmdalias plugin is installed, it will be used to create aliases for
         a few commands, to make it easier to type. Download the plugin from:
             http://www.vim.org/script.php?script_id=745
@@ -112,11 +112,11 @@ session. You can search for the function that you are interested in and use
 function calls by continuing to press <Enter> on the identifiers that you are
 interested in the listings and create a history that you can navigate back by
 using <BS> key (or :BPBack command) and forth by using <Tab> (or :BPForward
-command). Instead o pressing <Enter> to select an identifier, you could also
+command). Instead of pressing <Enter> to select an identifier, you could also
 use your mouse to double-click.
 
 You can also define a hotkey to open the window. Choose a function key, such
-as <F7> or a key sequence such as \b and put the following in your vimrc: >
+as <F7> or a key sequence such as <Leader>b and put the following in your vimrc: >
 
         nmap <silent> <F7> <Plug>BreakPts
 <
@@ -159,7 +159,7 @@ the following buffer local commands:
         BPPoints        List breakpoints (:BreakPts +b)
 
 The difference between these and the corresponding options is that these
-presever the history.
+preserve the history.
 
                                             *:BPListFunc*
                                             *:BPListScript*
@@ -207,7 +207,7 @@ but you can easily configure them.
     Mapping               Default       Description~
     BreakPtsContKey       <F5>          Continue execution (>cont).
     BreakPtsQuitKey       <S-F5>        Quit debug mode (>quit).
-    BreakPtsNextKey       <F12>         Exeute next command (>next).
+    BreakPtsNextKey       <F12>         Execute next command (>next).
     BreakPtsStepKey       <F11>         Step into next command (>step).
     BreakPtsFinishKey     <S-F11>       Finish executing current
                                         function/script (>finish).
@@ -274,14 +274,14 @@ This command is very much like running the |:source| on the script except that
 it can work remotely and for plugins, it can make sure the corresponding
 "g:loaded_<plugin name>" variable is first unlet so that it will actually
 sourced. This is also useful to reload autoload scripts, but since they don't
-use a guaring variable to prevent sourcing multiple times, no variable unletting
+use a warning variable to prevent sourcing multiple times, no variable unletting
 is done.
 
 NOTE: Don't use this command to reload scripts such as ftplugin, indent, syntax,
 colors or compiler plugins as these will automatically be reloaded by Vim at
 appropriate times.
 
-TIP: Desing your plugin and autoload scripts such that you can reload them in to
+TIP: Design your plugin and autoload scripts such that you can reload them in to
 your debug session without needing to restart Vim. This considerably speeds up
 your debug/development time. To support reloading, guard all the script local
 variables against an |exists()| block such that they will not get initialized
@@ -371,7 +371,7 @@ The commands are simply relayed to the remote debugging session using the
 ==============================================================================
 
                                             *breakpts-functions*
-The plugin provides a se tof global functions which can be used to insert or
+The plugin provides a set of global functions which can be used to insert or
 remove breakpoints programmatically and conditionally. The BPBreak() function
 works similar to the VB break command (and like the new ":breakadd here"
 command, but also works inside functions). They can also be executed at the
