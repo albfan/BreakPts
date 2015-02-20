@@ -44,8 +44,7 @@ let s:myScriptId = s:MyScriptId()
 delfunction s:MyScriptId
 
 if has("signs")
-  sign define VimBreakPt linehl=BreakPtsBreakLine text=>>
-        " \ texthl=BreakPtsBreakLine
+  sign define VimBreakPt linehl=BreakPtsBreakLine text=>> texthl=BreakPtsBreakLine
 endif
 " Initialization }}}
 
@@ -866,10 +865,10 @@ function! s:SetupBuf(full)
   call s:DefMap("n", "EvaluateExpr", "<F8>", ":BPDEvaluate <C-R>=expand('<cword>')<CR>")
 
   " A bit of a setup for syntax colors.
-  hi def link BreakPtsBreakLine WarningMsg
-  hi def link BreakPtsContext Visual
-  hi def link BreakPtsHeader Comment
-  hi def link BreakPtsScriptId Number
+  highlight default link BreakPtsBreakLine WarningMsg
+  highlight default link BreakPtsContext Visual
+  highlight default link BreakPtsHeader Comment
+  highlight default link BreakPtsScriptId Number
 
   normal zM
 endfunction
