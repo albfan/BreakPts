@@ -344,6 +344,7 @@ installed, the built-in commands will be aliased to these custom commands.
 
                                             *breakpts-visual-debugging*
                                             *breakpts-remote-debugging*
+                                            *:BPRemoteServ*
 To connect to a remote Vim using the |clientserver| functionality, open the
 BreakPts window and use the :BPRemoteServ command with the Vim server name as
 the argument (with no arguments the same command prints the current remote
