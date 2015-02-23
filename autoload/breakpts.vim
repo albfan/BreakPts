@@ -1058,10 +1058,23 @@ function! s:ShowRemoteContext() " {{{
       if name != s:GetListingName()
         call s:Browser(0, mode, '', name)
       endif
+      let s:curLineInCntxt = lineNo 
       let s:curNameInCntxt = name
-      let s:curLineInCntxt = lineNo + 1 " 1 extra for function header.
       if s:curLineInCntxt != ''
-        exec s:curLineInCntxt
+        "On functions with line continuation, lines have gaps
+        "so search in first line number if that line is equal to one searched
+        "if it is above stay on previous line
+        let pos = 2 "first line is 1 so start at 2
+        let currentpos = 1
+        while currentpos <= s:curLineInCntxt
+          let line = getline(pos)
+          let currentpos = str2nr(substitute(line, '\(\d\+\).*', '\1',''))
+          if currentpos >= s:curLineInCntxt
+            break
+          endif
+          let pos = pos + 1
+        endwhile
+        exec pos
         if winline() == winheight(0)
           normal! z.
         endif
