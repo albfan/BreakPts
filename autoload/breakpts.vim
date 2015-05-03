@@ -1014,7 +1014,7 @@ endfunction " }}}
 function! s:EvaluateExpr(expr) " {{{
     if s:remoteServName !=# '.' &&
           \ remote_expr(s:remoteServName, 'mode()') ==# 'c'
-      echo remote_expr(s:remoteServName, a:expr)
+      echo remote_expr(s:remoteServName, "string(".a:expr.")")
     endif
 endfunction " }}}
 
