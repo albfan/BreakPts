@@ -139,6 +139,13 @@ function! s:Browser(force, browserMode, id, name) " {{{
     endif
     silent! exec '1,' . (lastLine + 1) . 'delete _'
     call append(0, s:header{a:browserMode})
+    if s:remoteServName != ""
+      if s:remoteServName == "."
+        call append(0, "[LOCAL DEBUG]")
+      else
+        call append(0, "[DEBUG ".s:remoteServName ."]")
+      endif
+    endif
   endif
   setlocal nomodifiable
   call s:MarkBreakPoints(a:name)
@@ -174,6 +181,13 @@ function! s:List_script(curScriptId, curScript) " {{{
   call genutils#SilentSubstitute('^',
         \ '2,$s//\=strpart((line(".") - 1)."    ", 0, '.
         \ (strlen(string(line('$')))+1).')/')
+  if s:remoteServName != ""
+    if s:remoteServName == "."
+      call append(0, "[LOCAL DEBUG]")
+    else
+      call append(0, "[DEBUG ".s:remoteServName ."]")
+    endif
+  endif
 endfunction " }}}
 
 function! s:List_function(sid, funcName) " {{{
@@ -196,10 +210,17 @@ function! s:List_function(sid, funcName) " {{{
     call genutils#SilentSubstitute('^\(\s\+\)function ', '1s//\1function! /')
   endif
   call s:FixInitWhite()
+  if s:remoteServName != ""
+    if s:remoteServName == "."
+      call append(0, "[LOCAL DEBUG]")
+    else
+      call append(0, "[DEBUG ".s:remoteServName ."]")
+    endif
+  endif
 endfunction " }}}
 
 function! s:GetBrowserMode() " {{{
-  let headLine = getline(1)
+  let headLine = getline(2)
   if headLine =~ '^\s*function!\= '
     let mode = g:breakpts#BM_FUNCTION
   elseif headLine =~ '^'.s:header{g:breakpts#BM_FUNCTIONS}.'$'
@@ -222,7 +243,7 @@ endfunction " }}}
 " Breakpoint handling {{{
 
 function! s:DoAction() " {{{
-  if line('.') == 1 " Ignore the header line.
+  if line('.') <= 2 " Ignore the header lines.
     return
   endif
   let browserMode = s:GetBrowserMode()
@@ -469,9 +490,7 @@ function! s:ToggleBreakPoint()
   if browserMode == g:breakpts#BM_FUNCTION
     let name = s:GetListingName()
     let mode = 'func'
-    if line('.') == 1 || line('.') == line('$')
-      let brkLine = 1
-    else
+    if line('.') > 2 && line('.') < line('$')
       let brkLine = matchstr(getline('.'), '^\d\+')
       if brkLine == ''
         let brkLine = 0
@@ -610,11 +629,11 @@ function! s:GetListingId()
 endfunction
 
 function! s:GetListedScript()
-  return matchstr(getline(1), '^Script: \zs\f\+\ze (Id: \d\+)')
+  return matchstr(getline(2), '^Script: \zs\f\+\ze (Id: \d\+)')
 endfunction
 
 function! s:GetListedScriptId()
-  return matchstr(getline(1), '^Script: \f\+ (Id: \zs\d\+\ze)')
+  return matchstr(getline(2), '^Script: \f\+ (Id: \zs\d\+\ze)')
 endfunction
 
 function! s:GetScript()
@@ -634,7 +653,7 @@ function! s:GetFuncName()
 endfunction
 
 function! s:GetListedFunction() " Includes SID.
-  return matchstr(getline(1),
+  return matchstr(getline(2),
         \ '\%(^\s*function!\? \)\@<=\%(<SNR>\d\+_\)\?\f\+\%(([^)]*)\)\@=')
 endfunction
 
@@ -1064,7 +1083,7 @@ function! s:ShowRemoteContext() " {{{
         "On functions with line continuation, lines have gaps
         "so search in first line number if that line is equal to one searched
         "if it is above stay on previous line
-        let pos = 2 "first line is 1 so start at 2
+        let pos = 3 "first line is 1 so start at 3
         let currentpos = 1
         while currentpos <= s:curLineInCntxt
           let line = getline(pos)
