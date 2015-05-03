@@ -836,7 +836,14 @@ function! s:SetupBuf(full)
         \ "' . g:breakpts#BM_FUNCTIONS . '", "", "")'
   exec 'command! -buffer BPPoints :call <SID>Browser(0,
         \ "' . g:breakpts#BM_BRKPTS . '", "", "")'
-  command! -buffer -nargs=? BPRemoteServ :call <SID>SetRemoteServer(<f-args>)
+  command! -buffer -nargs=? -complete=custom,ServerListComplete BPRemoteServ :call <SID>SetRemoteServer(<f-args>)
+  function! ServerListComplete(ArgLead,CmdLine,CursorPos)
+      let servernames = split(serverlist())
+      if a:ArgLead != ""
+        call filter(servernames, 'v:val =~ "'.a:ArgLead.'"')
+      endif
+      return join(servernames, "\n")
+  endfunction
 
   command! -buffer BPBack :call <SID>NavigateBack()
   command! -buffer BPForward :call <SID>NavigateForward()
