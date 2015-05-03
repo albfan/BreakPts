@@ -16,6 +16,7 @@ let s:opMode = ""
 let s:remoteServName = '.'
 let s:curLineInCntxt = '' " Current line for context.
 let s:auloadedSids = {} " A cache keyed by their autoload prefix (without #).
+let s:autoCmd = ""
 endif
 
 let breakpts#BM_SCRIPT = 'script'
@@ -874,12 +875,35 @@ function! s:SetupBuf(full)
   nnoremap <silent> <buffer> O :BPReload<CR>
 
   command! -buffer BPDWhere :call <SID>ShowRemoteContext()
-  command! -buffer BPDCont :call <SID>ExecDebugCmd('cont')
+  command! -buffer BPDCont :call <SID>Cont()
   command! -buffer BPDQuit :call <SID>ExecDebugCmd('quit')
-  command! -buffer BPDNext :call <SID>ExecDebugCmd('next')
-  command! -buffer BPDStep :call <SID>ExecDebugCmd('step')
+  command! -buffer BPDNext :call <SID>Next()
+  command! -buffer BPDStep :call <SID>Step()
   command! -buffer BPDFinish :call <SID>ExecDebugCmd('finish')
   command! -buffer -nargs=1 BPDEvaluate :call <SID>EvaluateExpr(<f-args>)
+  command! -buffer -nargs=1 BPDSetAutoCommand :call <SID>SetAutoCmd(<f-args>)
+  command! -buffer -nargs=0 BPDClearAutoCommand :call <SID>ClearAutoCmd()
+
+  function! s:Cont()
+    call <SID>ExecDebugCmd('cont')
+    call <SID>AutoCmd()
+  endfunction
+
+  function! s:Next()
+    call <SID>ExecDebugCmd('next')
+    call <SID>AutoCmd()
+  endfunction
+
+  function! s:Step()
+    call <SID>ExecDebugCmd('step')
+    call <SID>AutoCmd()
+  endfunction
+
+  function! s:AutoCmd()
+    if s:autoCmd != ""
+      call <SID>EvaluateExpr(s:autoCmd)
+    endif 
+  endfunction
 
   call s:DefMap("n", "ContKey", "<F5>", ":BPDCont<CR>", 1)
   call s:DefMap("n", "QuitKey", "<S-F5>", ":BPDQuit<CR>", 1)
@@ -1016,6 +1040,14 @@ function! s:EvaluateExpr(expr) " {{{
           \ remote_expr(s:remoteServName, 'mode()') ==# 'c'
       echo remote_expr(s:remoteServName, "string(".a:expr.")")
     endif
+endfunction " }}}
+
+function! s:SetAutoCmd(expr) " {{{
+    let s:autoCmd = a:expr
+endfunction " }}}
+
+function! s:ClearAutoCmd() " {{{
+    let s:autoCmd = ""
 endfunction " }}}
 
 function! s:ExecDebugCmd(cmd) " {{{
