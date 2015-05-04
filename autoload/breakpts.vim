@@ -666,10 +666,10 @@ function! s:ExtractSID(funcName)
     if has_key(s:auloadedSids, auloadPrefix)
       let sid = s:auloadedSids[auloadPrefix]
     else
-      let loadedScipts = split(s:GetVimCmdOutput('scriptnames'), "\n")
-      for scrpt in loadedScipts
-        if scrpt =~ 'autoload[/\\]'.auloadPrefix.'.vim$'
-          let sid = matchstr(scrpt, '\d\+')
+      let loadedScripts = split(s:GetVimCmdOutput('scriptnames'), "\n")
+      for script in loadedScripts
+        if script =~ 'autoload[/\\]'.auloadPrefix.'.vim$'
+          let sid = matchstr(script, '\d\+')
           let s:auloadedSids[auloadPrefix] = sid
         endif
       endfor
