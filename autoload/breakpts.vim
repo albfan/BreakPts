@@ -45,7 +45,8 @@ let s:myScriptId = s:MyScriptId()
 delfunction s:MyScriptId
 
 if has("signs")
-  sign define VimBreakPt linehl=BreakPtsBreakLine text=>> texthl=BreakPtsBreakLine
+  sign define VimBreakPt linehl=BreakPtsBreakLine text=!! texthl=BreakPtsBreakLine
+  sign define VimBreakDbgCur text=>>
 endif
 " Initialization }}}
 
@@ -385,7 +386,19 @@ endfunction
 function! s:MarkCurLineInCntxt()
   silent! syn clear BreakPtsContext
   if s:curLineInCntxt != '' && s:GetListingName() == s:curNameInCntxt
-    exec 'syn match BreakPtsContext "\%'.s:curLineInCntxt.'l.*"'
+    let realLine = s:curLineInCntxt + 2
+    let useSigns = 0
+    if useSigns
+      "when highlight is too much set a sign (and clear previous)
+      exe ':sign place ' . realLine  . ' name=' . s:VimBreakDbgCur . ' line=' . a:line . ' buffer=' . winbufnr(0)
+      try
+        exe ':sign unplace ' . old_cur_pos . ' buffer=' . winbufnr(0)
+      catch /.*/
+      endtry
+    else
+      exec 'match BreakPtsContext "\%'.realLine.'l.*"'
+    endif
+
   endif
 endfunction
 " }}}
@@ -916,7 +929,7 @@ function! s:SetupBuf(full)
 
   " A bit of a setup for syntax colors.
   highlight default link BreakPtsBreakLine WarningMsg
-  highlight default link BreakPtsContext Visual
+  highlight default BreakPtsContext ctermfg=17 ctermbg=45 guifg=#00005f guibg=#00dfff
   highlight default link BreakPtsHeader Comment
   highlight default link BreakPtsScriptId Number
 
