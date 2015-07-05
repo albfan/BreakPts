@@ -897,27 +897,6 @@ function! s:SetupBuf(full)
   command! -buffer -nargs=1 BPDSetAutoCommand :call <SID>SetAutoCmd(<f-args>)
   command! -buffer -nargs=0 BPDClearAutoCommand :call <SID>ClearAutoCmd()
 
-  function! s:Cont()
-    call <SID>ExecDebugCmd('cont')
-    call <SID>AutoCmd()
-  endfunction
-
-  function! s:Next()
-    call <SID>ExecDebugCmd('next')
-    call <SID>AutoCmd()
-  endfunction
-
-  function! s:Step()
-    call <SID>ExecDebugCmd('step')
-    call <SID>AutoCmd()
-  endfunction
-
-  function! s:AutoCmd()
-    if s:autoCmd != ""
-      call <SID>EvaluateExpr(s:autoCmd)
-    endif 
-  endfunction
-
   call s:DefMap("n", "ContKey", "<F5>", ":BPDCont<CR>", 1)
   call s:DefMap("n", "QuitKey", "<S-F5>", ":BPDQuit<CR>", 1)
   call s:DefMap("n", "NextKey", "<F12>", ":BPDNext<CR>", 1)
@@ -934,6 +913,27 @@ function! s:SetupBuf(full)
   highlight default link BreakPtsScriptId Number
 
   normal zM
+endfunction
+
+function! s:Cont()
+  call <SID>ExecDebugCmd('cont')
+  call <SID>AutoCmd()
+endfunction
+
+function! s:Next()
+  call <SID>ExecDebugCmd('next')
+  call <SID>AutoCmd()
+endfunction
+
+function! s:Step()
+  call <SID>ExecDebugCmd('step')
+  call <SID>AutoCmd()
+endfunction
+
+function! s:AutoCmd()
+  if s:autoCmd != ""
+    call <SID>EvaluateExpr(s:autoCmd)
+  endif
 endfunction
 
 " With no arguments, behaves like quit, and with arguments, just refreshes.
