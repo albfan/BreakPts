@@ -52,7 +52,7 @@ endif
 
 
 " Browser functions {{{
- 
+
 function! breakpts#BrowserMain(...) " {{{
   if s:myBufNum == -1
     " Temporarily modify isfname to avoid treating the name as a pattern.
@@ -193,8 +193,8 @@ function! s:List_script(curScriptId, curScript) " {{{
 endfunction " }}}
 
 function! s:List_function(sid, funcName) " {{{
-  
-  if (a:funcName+0 > 0) 
+
+  if (a:funcName+0 > 0)
     let funcName = '{'.a:funcName.'}'
   else
     let funcName = a:funcName
@@ -571,7 +571,7 @@ endfunction
 function! breakpts#ClearBPCounters()
     let s:bpCounters = {}
 endfunction
- 
+
 function! breakpts#ClearAllBrkPts()
   let choice = confirm("Do you want to clear all the breakpoints?",
         \ "&Yes\n&No", "1", "Question")
@@ -616,7 +616,7 @@ endfunction
 " Utilities {{{
 
 " {{{
-" Get the function/script name that is currently being listed. 
+" Get the function/script name that is currently being listed.
 " As it appears in the :breaklist command.
 function! s:GetListingName()
   let browserMode = s:GetBrowserMode()
@@ -629,7 +629,7 @@ function! s:GetListingName()
   endif
 endfunction
 
-" Get the function/script id that is currently being listed. 
+" Get the function/script id that is currently being listed.
 " As it appears in the :breaklist command.
 function! s:GetListingId()
   let browserMode = s:GetBrowserMode()
@@ -659,7 +659,7 @@ function! s:GetScriptId()
 endfunction
 
 function! s:GetFuncName()
-  let funcName = getline('.') 
+  let funcName = getline('.')
   if match(funcName, "[~`!@$%^&*()-+={}[\\]|\\;'\",.?/]") != -1
     let funcName = ''
   endif
@@ -1109,7 +1109,7 @@ function! s:ShowRemoteContext() " {{{
   if context != ''
     let mode = g:breakpts#BM_FUNCTION
     " FIXME: Get the function stack and make better use of it.
-    " TODO: Use an external i18n file/s to parse other languages 
+    " TODO: Use an external i18n file/s to parse other languages
     if $LANG =~ "es"
       let str_in_line = 'en la línea'
     else
@@ -1130,7 +1130,7 @@ function! s:ShowRemoteContext() " {{{
       if name != s:GetListingName()
         call s:Browser(0, mode, '', name)
       endif
-      let s:curLineInCntxt = lineNo 
+      let s:curLineInCntxt = lineNo
       let s:curNameInCntxt = name
       if s:curLineInCntxt != ''
         "On functions with line continuation, lines have gaps
