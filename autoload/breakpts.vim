@@ -904,7 +904,7 @@ function! s:SetupBuf(full)
   call s:DefMap("n", "FinishKey", "<S-F11>", ":BPDFinish<CR>", 1)
   call s:DefMap("n", "ClearAllKey", "<C-S-F9>", ":BPClearAll<CR>", 1)
   "call s:DefMap("n", "RunToCursorKey", "<C-F10>", ":BPDRunToCursor<CR>", 1)
-  call s:DefMap("n", "EvaluateExpr", "<F8>", ":BPDEvaluate <C-R>=expand('<cword>')<CR>", 0)
+  call s:DefMap("n", "EvaluateExpr", "<F8>", ":BPDEvaluate <C-R>=<SID>EvaluateSelection()<CR>", 0)
 
   " A bit of a setup for syntax colors.
   highlight default link BreakPtsBreakLine WarningMsg
@@ -934,6 +934,24 @@ function! s:AutoCmd()
   if s:autoCmd != ""
     call <SID>EvaluateExpr(s:autoCmd)
   endif
+endfunction
+
+function s:EvaluateSelection()
+   let l:selection = s:VisualSelection()
+   if empty(l:selection)
+     let l:selection = expand("<cword>")
+   endif
+   return l:selection
+endfunction
+
+function! s:VisualSelection()
+  try
+    let a_save = @a
+    normal! gv"ay
+    return @a
+  finally
+    let @a = a_save
+  endtry
 endfunction
 
 " With no arguments, behaves like quit, and with arguments, just refreshes.
