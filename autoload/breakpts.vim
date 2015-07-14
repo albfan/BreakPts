@@ -379,24 +379,24 @@ function! s:MarkBreakPoints(name)
       1
     endif
   endif
-  call s:MarkCurLineInCntxt()
+  call s:MarkCurLineInCntxt(s:curLineInCntxt+2)
   return
 endfunction
 
-function! s:MarkCurLineInCntxt()
+function! s:MarkCurLineInCntxt(pos)
   silent! syn clear BreakPtsContext
   if s:curLineInCntxt != '' && s:GetListingName() == s:curNameInCntxt
-    let realLine = s:curLineInCntxt + 2
     let useSigns = 0
     if useSigns
       "when highlight is too much set a sign (and clear previous)
-      exe ':sign place ' . realLine  . ' name=' . s:VimBreakDbgCur . ' line=' . a:line . ' buffer=' . winbufnr(0)
+      exe ':sign place ' . a:pos . ' name=' . s:VimBreakDbgCur . ' line=' . a:pos . ' buffer=' . winbufnr(0)
       try
+        "TODO: remove old sign
         exe ':sign unplace ' . old_cur_pos . ' buffer=' . winbufnr(0)
       catch /.*/
       endtry
     else
-      exec 'match BreakPtsContext "\%'.realLine.'l.*"'
+      exec 'match BreakPtsContext "\%'.a:pos.'l.*"'
     endif
 
   endif
@@ -1168,7 +1168,7 @@ function! s:ShowRemoteContext() " {{{
         if winline() == winheight(0)
           normal! z.
         endif
-        call s:MarkCurLineInCntxt()
+        call s:MarkCurLineInCntxt(pos)
       endif
     else
       let s:curNameInCntxt = ''
