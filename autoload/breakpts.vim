@@ -1131,17 +1131,20 @@ function! s:ShowRemoteContext() " {{{
     if $LANG =~ "es"
       let str_in_line = 'en la línea'
     else
-      let str_in_line = 'in line'
+      let str_in_line = 'line'
     endif
-
-    exec substitute(context,
+    let name = ''
+    let sr = substitute(context,
           \ '^function \%('.s:FUNC_NAME_PAT.'\.\.\)*\('.s:FUNC_NAME_PAT.
           \ '\), '.str_in_line.' \(\d\+\)$',
-          \ 'let name = "\1" | let lineNo = "\2"', '')
+          \ 'let name = ''\1'' | let lineNo = ''\2''', '')
+    if sr != context
+      exec sr
+    endif
     if name == ''
       exec substitute(context,
             \ '^\([^,]\+\), '.str_in_line.' \(\d\+\)$',
-            \ 'let name = "\1" | let lineNo = "\2"', '')
+            \ 'let name = ''\1'' | let lineNo = ''\2''', '')
       let mode = g:breakpts#BM_SCRIPT
     endif
     if name != ''
