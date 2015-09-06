@@ -211,12 +211,14 @@ but you can easily configure them.
     BreakPtsStepKey       <F11>         Step into next command (>step).
     BreakPtsFinishKey     <S-F11>       Finish executing current
                                         function/script (>finish).
+    BreakPtsEvalExprKey   <F8>          Evaluate expression (>eval).
+    BreakPtsWhereKey      <F7>          Show execution point (>where).
     BreakPtsClearAllKey   <C-S-F9>      Clear all breakpoints.
 
-  E.g., to change the mapping for the BreakPtsContKey to <F8>, place the
+  E.g., to change the mapping for the BreakPtsContKey to <F4>, place the
   following in your vimrc:
 
-    nmap <script> <silent> <Plug>BreakPtsContKey <F8>
+    nmap <script> <silent> <Plug>BreakPtsContKey <F4>
 ==============================================================================
 
                                             *breakpts-commands*

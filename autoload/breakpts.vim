@@ -899,12 +899,13 @@ function! s:SetupBuf(full)
 
   call s:DefMap("n", "ContKey", "<F5>", ":BPDCont<CR>", 1)
   call s:DefMap("n", "QuitKey", "<S-F5>", ":BPDQuit<CR>", 1)
+  call s:DefMap("n", "WhereKey", "<F7>", ":BPDWhere<CR>", 1)
   call s:DefMap("n", "NextKey", "<F12>", ":BPDNext<CR>", 1)
   call s:DefMap("n", "StepKey", "<F11>", ":BPDStep<CR>", 1)
   call s:DefMap("n", "FinishKey", "<S-F11>", ":BPDFinish<CR>", 1)
   call s:DefMap("n", "ClearAllKey", "<C-S-F9>", ":BPClearAll<CR>", 1)
   "call s:DefMap("n", "RunToCursorKey", "<C-F10>", ":BPDRunToCursor<CR>", 1)
-  call s:DefMap("n", "EvaluateExpr", "<F8>", ":BPDEvaluate <C-R>=<SID>EvaluateSelection()<CR>", 0)
+  call s:DefMap("n", "EvalExprKey", "<F8>", ":BPDEvaluate <C-R>=<SID>EvaluateSelection()<CR>", 0)
 
   " A bit of a setup for syntax colors.
   highlight default link BreakPtsBreakLine WarningMsg

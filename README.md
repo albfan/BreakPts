@@ -25,7 +25,7 @@ Terminal 2:
     $ vim
     :BreakPts
     :BPRemoteServ FOO
-    :BPDWhere locate (actual debug execution point)
+    :BPDWhere or F7 locate (actual debug execution point)
     :BPDNext or F12 (next execution line)
     :BPDStep or F11 (step inside functions, dictionary functions)
     :BPDEvaluate or F8 (if pressed on visual selection evaluates that)
