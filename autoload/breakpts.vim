@@ -48,23 +48,26 @@ if has("signs")
   sign define VimBreakPt linehl=BreakPtsBreakLine text=!! texthl=BreakPtsBreakLine
   sign define VimBreakDbgCur text=>>
 endif
+
+function! s:GetLocalizedStrings()
+  " add a targeted breakpoint, extract the localized token phrase for
+  " 'line' into s:str_line, and delete that breakpoint afterwards
+  exec "breakadd func 1 ADummyFunc"
+  let breakList = genutils#GetVimCmdOutput('breaklist')
+  let matchedLn = matchstr(breakList, '\v\_s*\zs\d+\s+func\s+ADummyFunc\s+.{-}1\ze.{-}\_s*')
+  exec substitute(matchedLn, '\v(\d+)\s+func\s+ADummyFunc\s+(.{-})\s+1',
+              \ 'breakdel \1 | let s:str_line = ''\2''', '')
+  " extract the localized token phrase into s:str_in_line
+  call s:_GenContext()
+  exec substitute(g:BPCurContext, '\v^.*GenContext(.{-})\d+.*$', 'let s:str_in_line=''\1''', '')
+endfunction
 " Initialization }}}
 
 
 " Browser functions {{{
 
 function! breakpts#BrowserMain(...) " {{{
-  " add a targeted breakpoint, extract the localized token phrase for
-  " 'line' into s:str_line, and delete that breakpoint afterwards
-  exec "breakadd func breakpts#BrowserMain"
-  let breakList = genutils#GetVimCmdOutput('breaklist')
-  let matchedLn = matchstr(breakList, '\v\_s*\zs\d+\s+func\s+breakpts#BrowserMain\s+.{-}\d+\ze\_s*')
-  exec substitute(matchedLn, '\v(\d+)\s+func\s+breakpts#BrowserMain\s+(.{-})\s+\d+',
-              \ 'breakdel \1 | let s:str_line = ''\2''', '')
-  " extract the localized token phrase into s:str_in_line
-  call s:_GenContext()
-  exec substitute(g:BPCurContext, '\v^.*GenContext(.{-})\d+.*$', 'let s:str_in_line=''\1''', '')
-
+  call s:GetLocalizedStrings()
   if s:myBufNum == -1
     " Temporarily modify isfname to avoid treating the name as a pattern.
     let _isf = &isfname
