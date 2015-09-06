@@ -48,12 +48,26 @@ if has("signs")
   sign define VimBreakPt linehl=BreakPtsBreakLine text=!! texthl=BreakPtsBreakLine
   sign define VimBreakDbgCur text=>>
 endif
+
+function! s:GetLocalizedStrings()
+  " add a targeted breakpoint, extract the localized token phrase for
+  " 'line' into s:str_line, and delete that breakpoint afterwards
+  exec "breakadd func 1 ADummyFunc"
+  let breakList = genutils#GetVimCmdOutput('breaklist')
+  let matchedLn = matchstr(breakList, '\v\_s*\zs\d+\s+func\s+ADummyFunc\s+.{-}1\ze.{-}\_s*')
+  exec substitute(matchedLn, '\v(\d+)\s+func\s+ADummyFunc\s+(.{-})\s+1',
+              \ 'breakdel \1 | let s:str_line = ''\2''', '')
+  " extract the localized token phrase into s:str_in_line
+  call s:_GenContext()
+  exec substitute(g:BPCurContext, '\v^.*GenContext(.{-})\d+.*$', 'let s:str_in_line=''\1''', '')
+endfunction
 " Initialization }}}
 
 
 " Browser functions {{{
 
 function! breakpts#BrowserMain(...) " {{{
+  call s:GetLocalizedStrings()
   if s:myBufNum == -1
     " Temporarily modify isfname to avoid treating the name as a pattern.
     let _isf = &isfname
@@ -92,6 +106,7 @@ function! breakpts#BrowserMain(...) " {{{
   else
     call breakpts#BrowserRefresh(0)
   endif
+
 endfunction " }}}
 
 " Call this function to convert any buffer to a breakpts buffer.
@@ -250,12 +265,7 @@ function! s:DoAction() " {{{
   endif
   let browserMode = s:GetBrowserMode()
   if browserMode == g:breakpts#BM_BRKPTS
-    if $LANG =~ "es"
-      let str_not_def_bp = 'No se ha definido "breakpoints"'
-    else
-      let str_not_def_bp = 'No breakpoints defined'
-    endif
-    if getline('.') =~ str_not_def_bp
+    if match(getline('.'), '\d') == -1 " no breakpoints defined
       return
     endif
     exec s:GetBrklistLineParser(getline('.'), 'name', 'mode')
@@ -321,23 +331,18 @@ let s:BRKPT_NR = '\%(^\|['."\n".']\+\)\s*\zs\d\+\ze\s\+\%(func\|file\)' .
       \ '\s\+\S\+\s\+line\s\+\d\+'
 " Mark breakpoints {{{
 function! s:MarkBreakPoints(name)
-  if $LANG =~ "es"
-    let str_line = 'línea'
-  else
-    let str_line = 'line'
-  endif
   let b:brkPtLines = []
   let brkPts = s:GetVimCmdOutput('breaklist')
   let pat = ''
   let browserMode = s:GetBrowserMode()
   if browserMode == g:breakpts#BM_FUNCTIONS
-    let pat = '\d\+\s\+func \zs\%(<SNR>\d\+_\)\?\k\+\ze\s\+'.str_line.' \d\+'
+    let pat = '\d\+\s\+func \zs\%(<SNR>\d\+_\)\?\k\+\ze\s\+'.s:str_line.' \d\+'
   elseif browserMode == g:breakpts#BM_FUNCTION
-    let pat = '\d\+\s\+func ' . a:name . '\s\+'.str_line.' \zs\d\+'
+    let pat = '\d\+\s\+func ' . a:name . '\s\+'.s:str_line.' \zs\d\+'
   elseif browserMode == g:breakpts#BM_SCRIPTS
-    let pat = '\d\+\s\+file \zs\f\+\ze\s\+'.str_line.' \d\+'
+    let pat = '\d\+\s\+file \zs\f\+\ze\s\+'.s:str_line.' \d\+'
   elseif browserMode == g:breakpts#BM_SCRIPT
-    let pat = '\d\+\s\+file \m' . escape(a:name, "\\") . '\M\s\+'.str_line.' \zs\d\+'
+    let pat = '\d\+\s\+file \m' . escape(a:name, "\\") . '\M\s\+'.s:str_line.' \zs\d\+'
   elseif browserMode == g:breakpts#BM_BRKPTS
     let pat = s:BRKPT_NR
   endif
@@ -578,13 +583,7 @@ function! breakpts#ClearAllBrkPts()
   if choice == 1
     call breakpts#ClearBPCounters()
     let breakList = s:GetVimCmdOutput('breaklist')
-    " FIXME: lang dependent.
-    if $LANG =~ "es"
-      let str_not_def_bp = 'No se ha definido "breakpoints"'
-    else
-      let str_not_def_bp = 'No breakpoints defined'
-    endif
-    if breakList !~ str_not_def_bp
+    if match(breakList, '\d') == -1 " breakpoints not defined
       let clearCmds = substitute(breakList,
             \ '\(\d\+\)\%(\s\+\%(func\|file\)\)\@=' . "[^\n]*",
             \ ':breakdel \1', 'g')
@@ -599,13 +598,8 @@ function! breakpts#ClearAllBrkPts()
 endfunction
 
 function! s:GetBrklistLineParser(line, nameVar, modeVar)
-  if $LANG =~ "es"
-    let str_line = 'línea'
-  else
-    let str_line = 'line'
-  endif
   return substitute(a:line,
-        \ '^\s*\d\+\s\+\(\S\+\)\s\+\(.\{-}\)\s\+'.str_line.'\s\+\(\d\+\)$', "let ".
+        \ '^\s*\d\+\s\+\(\S\+\)\s\+\(.\{-}\)\s\+'.s:str_line.'\s\+\(\d\+\)$', "let ".
         \ a:modeVar."='\\1' | let ".a:nameVar."='\\2' | let lnum=\\3", '')
 endfunction
 " Add/Remove breakpoints }}}
@@ -1128,24 +1122,19 @@ function! s:ShowRemoteContext() " {{{
   if context != ''
     let mode = g:breakpts#BM_FUNCTION
     " FIXME: Get the function stack and make better use of it.
-    " TODO: Use an external i18n file/s to parse other languages
-    if $LANG =~ "es"
-      let str_in_line = 'en la línea'
-    else
-      let str_in_line = 'line'
-    endif
     let name = ''
     let sr = substitute(context,
           \ '^function \%('.s:FUNC_NAME_PAT.'\.\.\)*\('.s:FUNC_NAME_PAT.
-          \ '\), '.str_in_line.' \(\d\+\)$',
+          \ '\)'.s:str_in_line.'\(\d\+\).*$',
           \ 'let name = ''\1'' | let lineNo = ''\2''', '')
     if sr != context
       exec sr
     endif
     if name == ''
-      exec substitute(context,
-            \ '^\([^,]\+\), '.str_in_line.' \(\d\+\)$',
+      let ss = substitute(context,
+            \ '^\(.\+\)'.s:str_in_line.'\(\d\+\).*$',
             \ 'let name = ''\1'' | let lineNo = ''\2''', '')
+      exec ss
       let mode = g:breakpts#BM_SCRIPT
     endif
     if name != ''
@@ -1273,18 +1262,13 @@ function! s:_BreakIf()
     let __breakLine = v:throwpoint
   endtry
   if __breakLine =~# '^function '
-    if $LANG =~ "es"
-      let str_line = 'línea'
-    else
-      let str_line = 'line'
-    endif
     let __breakLine = substitute(__breakLine,
           \ '^function \%(\%(\k\|[<>]\|#\)\+\.\.\)*\(\%(\k\|[<>]\|#\)\+\), ' .
-          \     str_line.'\s\+\(\d\+\)$',
+          \     s:str_line.'\s\+\(\d\+\)$',
           \ '\="func " . (submatch(2) + <offset>) . " " . submatch(1)', '')
   else
     let __breakLine = substitute(__breakLine,
-          \ '^\(.\{-}\), '.str_line.'\s\+\(\d\+\)$',
+          \ '^\(.\{-}\), '.s:str_line.'\s\+\(\d\+\)$',
           \ '\="file " . (submatch(2) + <offset>) . " " . submatch(1)', '')
   endif
   if __breakLine != ''
