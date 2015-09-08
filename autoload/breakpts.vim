@@ -899,7 +899,8 @@ function! s:SetupBuf(full)
   call s:DefMap("n", "FinishKey", "<S-F11>", ":BPDFinish<CR>", 1)
   call s:DefMap("n", "ClearAllKey", "<C-S-F9>", ":BPClearAll<CR>", 1)
   "call s:DefMap("n", "RunToCursorKey", "<C-F10>", ":BPDRunToCursor<CR>", 1)
-  call s:DefMap("n", "EvalExprKey", "<F8>", ":BPDEvaluate <C-R>=<SID>EvaluateSelection()<CR>", 0)
+  call s:DefMap("n", "EvalExprKey", "<F8>", ":BPDEvaluate <C-R>=<SID>EvaluateSelection(0)<CR>", 0)
+  call s:DefMap("v", "EvalExprKey", "<F8>", ":<C-U>BPDEvaluate <C-R>=<SID>EvaluateSelection(1)<CR>", 0)
 
   " A bit of a setup for syntax colors.
   highlight default link BreakPtsBreakLine WarningMsg
@@ -931,12 +932,16 @@ function! s:AutoCmd()
   endif
 endfunction
 
-function s:EvaluateSelection()
-   let l:selection = s:VisualSelection()
-   if empty(l:selection)
-     let l:selection = expand("<cword>")
-   endif
-   return l:selection
+function s:EvaluateSelection(visualmode)
+  let l:selection = ""
+  if a:visualmode
+    let l:selection = s:VisualSelection()
+  endif
+  if empty(l:selection)
+    let l:selection = expand("<cword>")
+  endif
+  " remove jumps for multiline commands
+  return substitute(l:selection,'\\\?\n\(\d\+\)*', '', 'g')
 endfunction
 
 function! s:VisualSelection()
@@ -971,7 +976,7 @@ function! s:Quit()
 endfunction " }}}
 
 function! s:DefMap(mapType, mapKeyName, defaultKey, cmdStr, silent) " {{{
-  let key = maparg('<Plug>BreakPts' . a:mapKeyName)
+  let key = maparg('<Plug>BreakPts' . a:mapKeyName . a:mapType)
   " If user hasn't specified a key, use the default key passed in.
   if key == ""
     let key = a:defaultKey

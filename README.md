@@ -28,7 +28,7 @@ Terminal 2:
     :BPDWhere or F7 locate (actual debug execution point)
     :BPDNext or F12 (next execution line)
     :BPDStep or F11 (step inside functions, dictionary functions)
-    :BPDEvaluate or F8 (if pressed on visual selection evaluates that)
+    :BPDEvaluate or F8 (evaluate word under cursor, if pressed on visual selection evaluates selection)
     :BPDCont or F5 (continue execution)
 
 See some plugins are loaded dinamically so you need to operate with them prior to set breakpoints.
