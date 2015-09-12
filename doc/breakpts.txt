@@ -66,8 +66,9 @@ OVERVIEW                                    *breakpts-overview*
 
                                             *breakpts-installation*
     Easy way: (Vundle)
-    - Add 
-            Plugin 'albfan/BreakPts' to ~/.vimrc
+    - Add to ~/.vimrc
+            Plugin 'vim-scripts/genutils'
+            Plugin 'albfan/vim-breakpts'
     - Execute
             :PluginInstall
     Hard way:
@@ -114,14 +115,6 @@ interested in the listings and create a history that you can navigate back by
 using <BS> key (or :BPBack command) and forth by using <Tab> (or :BPForward
 command). Instead of pressing <Enter> to select an identifier, you could also
 use your mouse to double-click.
-
-You can also define a hotkey to open the window. Choose a function key, such
-as <F7> or a key sequence such as <Leader>b and put the following in your vimrc: >
-
-        nmap <silent> <F7> <Plug>BreakPts
-<
-There is no default hotkey defined, so you *must* define one to use this
-feature.
 
 The :BreakPts command can take an option for you to specify what listing to
 display in the Breakpts window. The available options are:
@@ -202,6 +195,9 @@ There are a few settings by which you can customize the behavior of this plugin.
   feature is disabled if foldutil.vim is not found to be installed, but you
   can also set g:brkptsCreateFolds to 0 to explicitly disable it.
 
+                                                                *g:brkptsLayout*
+- By default |:BreakPts| will open on split mode, but you can change defining
+  g:brkptsLayout="edit"
                                             *breakpts-maps*
 The default maps for debug commands are defined based on the MS Visual Studio,
 but you can easily configure them.

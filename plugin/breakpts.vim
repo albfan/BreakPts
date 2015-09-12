@@ -113,6 +113,9 @@ endif
 if !exists("g:brkptsModFuncHeader")
   let g:brkptsModFuncHeader = 1
 endif
+if !exists("g:brkptsLayout")
+  let g:brkptsLayout = "split"
+endif
 
 " WinManager call backs {{{
 function! BreakPts_Start()

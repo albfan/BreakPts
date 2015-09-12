@@ -74,11 +74,11 @@ function! breakpts#BrowserMain(...) " {{{
     try
       set isfname-=\
       set isfname-=[
+      let sep='\\'
       if exists('+shellslash')
-        exec "split \\\\". escape(g:BreakPts_title, ' ')
-      else
-        exec "split \\". escape(g:BreakPts_title, ' ')
+        let sep='\\\\'
       endif
+      exec g:brkptsLayout . " " . sep . escape(g:BreakPts_title, ' ')
     finally
       let &isfname = _isf
     endtry
