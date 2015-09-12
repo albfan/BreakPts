@@ -183,8 +183,10 @@ BreakPts window and these are described under |breakpts-commands|.
                                             *breakpts-settings*
 There are a few settings by which you can customize the behavior of this plugin.
 
+                                                          *g:brkptsDefStartMode*
 - Set g:brkptsDefStartMode to "scripts", "functions" or "breakpts" to start
   the browser in that mode.
+                                                         *g:brkptsModFuncHeader*
 - Set g:brkptsModFuncHeader to a false value, if you don't want to change
   "function" to "function!" while listing functions. Making this change will
   normally make it easier for you to block copy the function and redefine it
@@ -192,6 +194,8 @@ There are a few settings by which you can customize the behavior of this plugin.
 - Set the '!' flag in viminfo if you want to save the breaklist across
   sessions (see usage above).
   defines two commands, [b and ]b (or :BPPrevious and :BPNext). Also, if
+                                                           *g:brkptsFoldContext*
+                                                           *g:brkptsCreateFolds*
 - If foldutil.vim plugin is found to be installed, the plugin
   automatically folds all the lines that do not have a breakpoint (with a
   context of g:brkptsFoldContext, which has a default value of 3). This
