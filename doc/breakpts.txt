@@ -1,8 +1,7 @@
 *breakpts.txt*  Set/View Vim breakpoints and browse functions visually
-                    Requires Vim 7.1
-            Last Change: 25-Oct-2007 @ 08:22
-          Since Version: 4.0
-                 Author: Hari Krishna Dara (hari.vim at gmail dot com)
+        Requires Vim 7.1
+        Author: Hari Krishna Dara (hari.vim at gmail dot com)
+        Maintainer: Alberto Fanjul (albertofanjul@gmail.com)
 
 The plugin provides a few features for debugging Vim scripts that are similar
 to what IDEs normally have, such as browsing source, managing breakpoints etc.

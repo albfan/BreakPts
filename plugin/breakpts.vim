@@ -1,15 +1,11 @@
 " breakpts.vim
 " Author: Hari Krishna Dara (hari.vim at gmail dot com)
-" Last Change: 06-May-2004 @ 20:08
-" Created: 09-Jan-2003
+" Maintainer: Alberto Fanjul (albertofanjul@gmail.com) 
 " Requires: Vim-7.1, genutils.vim(2.4)
-" Depends On: foldutil.vim(1.4), cmdalias.vim(1.0)
-" Version: 4.0.2
+" Version: 5.0.0
 " Licence: This program is free software; you can redistribute it and/or
 "          modify it under the terms of the GNU General Public License.
 "          See http://www.gnu.org/copyleft/gpl.txt 
-" Download From:
-"     http://www.vim.org/script.php?script_id=618
 " Description:
 "   Read :help breakpts.
 "
@@ -64,7 +60,7 @@ if !exists('loaded_genutils') || loaded_genutils < 204
   echomsg 'breakpts: You need a version 204 or higher of genutils.vim plugin'
   finish
 endif
-let loaded_breakpts = 400
+let loaded_breakpts = 500
 
 " No error if not found.
 if !exists('loaded_cmdalias')
