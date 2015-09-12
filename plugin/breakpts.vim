@@ -61,7 +61,7 @@ if !exists('loaded_genutils')
   runtime plugin/genutils.vim
 endif
 if !exists('loaded_genutils') || loaded_genutils < 204
-  echomsg 'breakpts: You need a newer version of genutils.vim plugin'
+  echomsg 'breakpts: You need a version 204 or higher of genutils.vim plugin'
   finish
 endif
 let loaded_breakpts = 400
