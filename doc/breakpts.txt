@@ -72,8 +72,8 @@ OVERVIEW                                    *breakpts-overview*
             :PluginInstall
     Hard way:
     - To install, download the latest versions of these two plugins:
-        breakpts: http://www.vim.org/script.php?script_id=618
-        genutils:  http://vim.sourceforge.net/script.php?script_id=197
+        breakpts: https://github.com/albfan/vim-breakpts  
+        genutils: https://github.com/vim-scripts/genutils 
     - Extract the zip archives in to your runtime directory (.vim or vimfiles
       under your HOME directory).
     - Make sure your vim has +signs feature.

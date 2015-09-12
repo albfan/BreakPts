@@ -2,6 +2,15 @@
 
 Visual debbuging on vim
 
+![screenshot](res/screenshot.png)
+
+## Install 
+
+Use [Vundle](https://github.com/VundleVim/Vundle.vim)
+
+    Plugin vim-scripts/genutils
+    Plugin albfan/vim-breakpts
+
 ## Usage
 
 For sophisticated plugins, normally command line debugging or tracing is not enough.
