@@ -15,7 +15,7 @@ Use [Vundle](https://github.com/VundleVim/Vundle.vim)
 
 For sophisticated plugins, normally command line debugging or tracing is not enough.
 
-You can use [BreakPts](https://github.com/albfan/vim-breakpts) to do a visual debug inside vim.
+You can use [vim-breakpts](https://github.com/albfan/vim-breakpts) to do a visual debug inside vim.
 
 It is based on remote debugging, so you need to debug a server instance of vim.
 
@@ -55,6 +55,18 @@ I have fix/tweak/evolve a lot of vim plugins thanks to this great plugin.
 - Vim 7.0 is minimum version required.
 - [genutils](https://github.com/vim-scripts/genutils)
 - Plugin no longer depends on multvals.vim
+
+## Background
+
+vim-breakpts is based on a [hacky trick documented](https://github.com/vim/vim/blob/master/runtime/doc/eval.txt#L8127)
+
+>A practical example:  The following command ":LineNumber" displays the line
+>number in the script or function where it has been used: >
+>
+>    :function! LineNumber()
+>    :    return substitute(v:throwpoint, '.*\D\(\d\+\).*', '\1', "")
+>    :endfunction
+>    :command! LineNumber try | throw "" | catch | echo LineNumber() | endtry
 
 ## Features
 
