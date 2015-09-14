@@ -6,18 +6,19 @@ set cpo&vim
 " Initizalization {{{
 
 if !exists('s:myBufNum')
-let s:myBufNum = -1
-let s:funcBufNum = -1
-let s:bpCounters = {}
-
-let g:BreakPts_title = "[BreakPts]"
-let s:BreakListing_title = "[BreakPts Listing]"
-let s:opMode = ""
-let s:remoteServName = '.'
-let s:curLineInCntxt = '' " Current line for context.
-let s:auloadedSids = {} " A cache keyed by their autoload prefix (without #).
-let s:autoCmd = ""
-let s:autoCmdLevel = 1
+  let s:myBufNum = -1
+  let s:funcBufNum = -1
+  let s:bpCounters = {}
+  
+  let g:BreakPts_title = "BreakPts"
+  let g:BreakPts_locals_title = "BreakPts_Locals"
+  let s:BreakListing_title = "BreakPts Listing"
+  let s:opMode = ""
+  let s:remoteServName = '.'
+  let s:curLineInCntxt = '' " Current line for context.
+  let s:auloadedSids = {} " A cache keyed by their autoload prefix (without #).
+  let s:autoCmd = ""
+  let s:autoCmdLevel = 1
 endif
 
 let breakpts#BM_SCRIPT = 'script'
@@ -50,6 +51,136 @@ if has("signs")
   sign define VimBreakDbgCur text=>>
 endif
 
+if !exists('g:brkpts_iconchars')
+  if has('multi_byte') && has('unix') && &encoding == 'utf-8' &&
+      \ (empty(&termencoding) || &termencoding == 'utf-8')
+    let g:brkpts_iconchars = ['▶', '▼']
+  else
+    let g:brkpts_iconchars = ['+', '-']
+  endif
+endif
+
+let s:icon_closed = g:brkpts_iconchars[0]
+let s:icon_open   = g:brkpts_iconchars[1]
+
+let s:brkpts_locals = { 
+    \ "locals" : {}
+    \ , "arguments" : {}
+    \ , "expressions" : {}
+    \ }
+
+function! s:brkpts_locals.locals.format(name)
+  return a:name
+endfunction
+
+function! s:brkpts_locals.arguments.format(name)
+  return "a:" . a:name
+endfunction
+
+function! s:brkpts_locals.expressions.format(name)
+  return a:name
+endfunction
+
+function! s:brkpts_locals.arguments.parse(lines)
+  return split(substitute(a:lines[0], ".*(\\(.*\\)).*", "\\1", ""), '\s*,\s*')
+endfunction
+
+function! s:brkpts_locals.locals.parse(lines)
+  return uniq(sort(map(filter(copy(a:lines), 'v:val =~ "let"'), 'substitute(v:val,".*let \\(.\\{-}\\) .*","\\1","")')))
+endfunction
+
+function s:brkpts_locals.expressions.parse(lines)
+  return []
+endfunction
+
+function! s:PrintLocals() 
+  let bufLocalNr = bufwinnr(g:BreakPts_locals_title)  
+  if bufLocalNr == -1
+    exec "vertical rightbelow new " . g:BreakPts_locals_title
+    call breakpts#SetupBuf()
+    let s:opMode = 'user'
+  elseif bufwinnr("%") != bufLocalNr
+    noautocmd exec bufLocalNr . 'wincmd w'
+  endif
+ 
+  silent %delete_
+
+  for key in keys(s:brkpts_locals)
+    let group = s:brkpts_locals[key]
+    if group.isFolded
+      let foldmarker = s:icon_closed
+    else
+      let foldmarker = s:icon_open
+    endif
+
+    silent put =foldmarker . ' ' . key
+    let group.line = line(".")
+    if !group.isFolded
+      for variable in group.variables
+        try
+          let value = <SID>GetRemoteExpr(group.format(variable.name), 1)
+        catch
+          let value = "(undefined)"
+        endtry
+        silent put ='   ' . variable.name . ': ' . value
+      endfor
+    endif
+  endfor
+
+  let s:ics = escape(join(g:brkpts_iconchars, ''), ']^\-')
+  let s:pattern = '\S\@<![' . s:ics . ']\([-+# ]\?\)\@='
+  execute "syntax match TagbarFoldIcon '" . s:pattern . "'"
+  highlight default link TagbarFoldIcon   Statement
+
+  map <buffer> <silent> <Enter> :call ToggleFold()<CR>
+endfunction
+
+function! ToggleFold()
+  let line = line(".")
+  for key in keys(s:brkpts_locals)
+    let group = s:brkpts_locals[key]
+    if group.line == line
+      if group.isFolded
+        let group.isFolded = 0
+      else
+        let group.isFolded = 1
+      endif
+      call <SID>PrintLocals()
+      break
+    endif
+  endfor
+endfunction
+
+function! s:ClearVariables(container)
+  let a:container.isFolded = 1
+  let a:container.variables = []
+endfunction
+
+function! s:PopulateLocals()
+  call <SID>ClearVariables(s:brkpts_locals.locals)
+  call <SID>ClearVariables(s:brkpts_locals.arguments)
+  call <SID>ClearVariables(s:brkpts_locals.expressions)
+
+  let context = s:GetRemoteContext()
+  let [mode, name, lineNo] = ParseContext(context)
+  if name != ''
+    let funcName = name 
+    let funcOutput = genutils#GetVimCmdOutput('func '.funcName)
+    let splitFunc = split(funcOutput, '\n')
+    for groupName in keys(s:brkpts_locals)
+      let group = s:brkpts_locals[groupName]
+      let names = group.parse(splitFunc)
+      for name in names
+        call add(group.variables, {"name": name})
+      endfor
+    endfor
+    
+    call <SID>PrintLocals()
+  endif
+endfunction
+
+let s:brkpts_locals.locals.isFolded = 0
+
 function! s:GetLocalizedStrings()
   " add a targeted breakpoint, extract the localized token phrase for
   " 'line' into s:str_line, and delete that breakpoint afterwards
@@ -70,19 +201,7 @@ endfunction
 function! breakpts#BrowserMain(...) " {{{
   call s:GetLocalizedStrings()
   if s:myBufNum == -1
-    " Temporarily modify isfname to avoid treating the name as a pattern.
-    let _isf = &isfname
-    try
-      set isfname-=\
-      set isfname-=[
-      let sep='\\'
-      if exists('+shellslash')
-        let sep='\\\\'
-      endif
-      exec g:brkptsLayout . " " . sep . escape(g:BreakPts_title, ' ')
-    finally
-      let &isfname = _isf
-    endtry
+    exec g:brkptsLayout . " " . g:BreakPts_title
     let s:myBufNum = bufnr('%')
   else
     let buffer_win = bufwinnr(s:myBufNum)
@@ -126,6 +245,16 @@ endfunction " }}}
 "   browser window is gauranteed to be already open (which is where the user
 "   must have executed the command in the first place).
 function! s:Browser(force, browserMode, id, name) " {{{
+
+  let bufBrowserNr = bufwinnr(g:BreakPts_title)  
+  if bufBrowserNr == -1
+    exec "vertical rightbelow new " . g:BreakPts_title
+    call breakpts#SetupBuf()
+    let s:opMode = 'user'
+  elseif bufwinnr("%") != bufBrowserNr
+    noautocmd exec bufBrowserNr . 'wincmd w'
+  endif
+
   call s:ClearSigns()
   " First mark the current position so navigation will work.
   normal! mt
@@ -882,6 +1011,7 @@ function! s:SetupBuf(full)
   nnoremap <silent> <buffer> ]b :BPNext<CR>
   nnoremap <silent> <buffer> O :BPReload<CR>
 
+  command! -buffer BPDLocals :call <SID>PopulateLocals()
   command! -buffer BPDWhere :call <SID>ShowRemoteContext()
   command! -buffer BPDCont :call <SID>Cont()
   command! -buffer BPDQuit :call <SID>ExecDebugCmd('quit')
@@ -1081,11 +1211,15 @@ function! s:EvaluateExpr(expr, max) " {{{
         \ remote_expr(s:remoteServName, 'mode()') ==# 'c'
     redraw
     try 
-      echo remote_expr(s:remoteServName, "breakpts#ToJson(" . a:expr . ", 0, " . a:max . ")")
+      echo <SID>GetRemoteExpr(a:expr, a:max)
     catch
       echo "(ERROR): evaluating " . a:expr . " " . v:exception . ", " . v:throwpoint
     endtry
   endif
+endfunction " }}}
+
+function! s:GetRemoteExpr(expr, max) " {{{
+  return remote_expr(s:remoteServName, "breakpts#ToJson(" . a:expr . ", 0, " . a:max . ")")
 endfunction " }}}
 
 " Inspect variables
@@ -1191,56 +1325,71 @@ function! s:WaitForDbgPrompt() " Throws remote exceptions. {{{
   endtry
 endfunction " }}}
 
-function! s:ShowRemoteContext() " {{{
-  let context = s:GetRemoteContext()
-  if context != ''
+function! ParseContext(context) " {{{
     let mode = g:breakpts#BM_FUNCTION
     " FIXME: Get the function stack and make better use of it.
     let name = ''
-    let sr = substitute(context,
+    let sr = substitute(a:context,
           \ '^function \%('.s:FUNC_NAME_PAT.'\.\.\)*\('.s:FUNC_NAME_PAT.
           \ '\)'.s:str_in_line.'\(\d\+\).*$',
           \ 'let name = ''\1'' | let lineNo = ''\2''', '')
-    if sr != context
+    if sr != a:context
       exec sr
     endif
     if name == ''
-      let ss = substitute(context,
+      let ss = substitute(a:context,
             \ '^\(.\+\)'.s:str_in_line.'\(\d\+\).*$',
             \ 'let name = ''\1'' | let lineNo = ''\2''', '')
       exec ss
       let mode = g:breakpts#BM_SCRIPT
     endif
+    return [mode, name, lineNo]
+endfunction " }}}
+
+function! s:ShowRemoteContext() " {{{
+  let context = s:GetRemoteContext()
+  if context != ''
+    let [mode, name, lineNo] = ParseContext(context)
     if name != ''
+      let currentBufNr = bufwinnr("%")
       if name != s:GetListingName()
         call s:Browser(0, mode, '', name)
       endif
       let s:curLineInCntxt = lineNo
       let s:curNameInCntxt = name
-      if s:curLineInCntxt != ''
-        "On functions with line continuation, lines have gaps
-        "so search in first line number if that line is equal to one searched
-        "if it is above stay on previous line
-        let pos = 3 "first line is 1 so start at 3
-        let currentpos = 1
-        while currentpos <= s:curLineInCntxt
-          let line = getline(pos)
-          let currentpos = str2nr(substitute(line, '\(\d\+\).*', '\1',''))
-          if currentpos >= s:curLineInCntxt
-            break
-          endif
-          let pos = pos + 1
-        endwhile
-        exec pos
-        if winline() == winheight(0)
-          normal! z.
-        endif
-        call s:MarkCurLineInCntxt(pos)
+      call MarkRemoteLine()
+      let bufLocalNr = bufwinnr(g:BreakPts_locals_title)  
+      if bufLocalNr != -1
+        call s:PrintLocals()
       endif
+      noautocmd exec currentBufNr . 'wincmd w'
     else
       let s:curNameInCntxt = ''
       let s:curLineInCntxt = ''
     endif
+  endif
+endfunction " }}}
+
+function! MarkRemoteLine() 
+  if s:curLineInCntxt != ''
+    "On functions with line continuation, lines have gaps
+    "so search in first line number if that line is equal to one searched
+    "if it is above stay on previous line
+    let pos = 3 "first line is 1 so start at 3
+    let currentpos = 1
+    while currentpos <= s:curLineInCntxt
+      let line = getline(pos)
+      let currentpos = str2nr(substitute(line, '\(\d\+\).*', '\1',''))
+      if currentpos >= s:curLineInCntxt
+        break
+      endif
+      let pos = pos + 1
+    endwhile
+    exec pos
+    if winline() == winheight(0)
+      normal! z.
+    endif
+    call s:MarkCurLineInCntxt(pos)
   endif
 endfunction " }}}
 
