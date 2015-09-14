@@ -185,7 +185,7 @@ There are a few settings by which you can customize the behavior of this plugin.
   while still in debug mode (kind of like incremental update).
 - Set the '!' flag in viminfo if you want to save the breaklist across
   sessions (see usage above).
-  defines two commands, [b and ]b (or :BPPrevious and :BPNext). Also, if
+  defines two commands, [b and ]b (or :|BPPrevious| and :|BPNext|). Also, if
                                                            *g:brkptsFoldContext*
                                                            *g:brkptsCreateFolds*
 - If foldutil.vim plugin is found to be installed, the plugin
@@ -203,16 +203,19 @@ but you can easily configure them.
 
   Here is a table of all the mappings and their default key associations:
   
-    Mapping               Default       Description~
-    BreakPtsContKey       <F5>          Continue execution (>cont).
-    BreakPtsQuitKey       <S-F5>        Quit debug mode (>quit).
-    BreakPtsNextKey       <F12>         Execute next command (>next).
-    BreakPtsStepKey       <F11>         Step into next command (>step).
-    BreakPtsFinishKey     <S-F11>       Finish executing current
-                                        function/script (>finish).
-    BreakPtsEvalExprKey   <F8>          Evaluate expression (>eval).
-    BreakPtsWhereKey      <F7>          Show execution point (>where).
-    BreakPtsClearAllKey   <C-S-F9>      Clear all breakpoints.
+    Mapping                Default       Description~
+    BreakPtsContKey        <F5>          Continue execution (>cont).
+    BreakPtsQuitKey        <S-F5>        Quit debug mode (>quit).
+    BreakPtsNextKey        <F12>         Execute next command (>next).
+    BreakPtsStepKey        <F11>         Step into next command (>step).
+    BreakPtsFinishKey      <S-F11>       Finish executing current
+                                            function/script (>finish).
+    BreakPtsEvalExprKey    <F8>          Evaluate word under cursor or
+                                            selection (>eval).
+    BreakPtsPreEvalExprKey <S-F8>        Preselect word under cursor or
+                                            selection to evaluate (>eval).
+    BreakPtsWhereKey       <F7>          Show execution point (>where).
+    BreakPtsClearAllKey    <C-S-F9>      Clear all breakpoints.
 
   E.g., to change the mapping for the BreakPtsContKey to <F4>, place the
   following in your vimrc:
@@ -225,23 +228,23 @@ There are a number of commands available local to the [BreakPts] window
 Here is a full list of such commands:
 
         Command         Description ~
-        BPBack          History navigation.
-        BPForward       History navigation.
-        BPSelect        Select the current item (drilldown)
-        BPOpen          Open the current script for editing.
-        BPToggle        Toggle breakpoint at the current line.
-        BPRefresh       Refresh/reload the current view.
-        BPNext          Take cursor to the next breakpoint in the current
+        |BPBack|          History navigation.
+        |BPForward|       History navigation.
+        |BPSelect|        Select the current item (drilldown)
+        |BPOpen|          Open the current script for editing.
+        |BPToggle|        Toggle breakpoint at the current line.
+        |BPRefresh|       Refresh/reload the current view.
+        |BPNext|          Take cursor to the next breakpoint in the current
                         view.
-        BPPrevious      Take cursor to the next breakpoint in the current
+        |BPPrevious|      Take cursor to the next breakpoint in the current
                         view.
-        BPReload        Reload the current script.
-        BPClearCounters Clear all counters for conditional breakpoints.
-        BPClearAll      Remove all breakpoints.
-        BPSave          Save all breakpoints in the given global variable.
-        BPScripts       List scripts
-        BPFunctions     List functions
-        BPPoints        List breakpoints
+        |BPReload|        Reload the current script.
+        |BPClearCounters| Clear all counters for conditional breakpoints.
+        |BPClearAll|      Remove all breakpoints.
+        |BPSave|          Save all breakpoints in the given global variable.
+        |BPScripts|       List scripts
+        |BPFunctions|     List functions
+        |BPPoints|        List breakpoints
 
                                             *:BPSave*
 You can save the breakpoints into a global variable using the :BPSave command
@@ -355,20 +358,38 @@ local vim session, use the same command with "." as the server name.
 
 Once the remote vim is in the debug mode (stopped at the > prompt), you can
 use :BPDWhere command to view the context of the remote session. The current
-line is marked with the BreakPtsContext highlighting group (by default same as
-Visual). You can also execute the :debug mode commands in the remote session
-as follows:
+line is marked with the BreakPtsContext highlighting group (a light blue
+background). You can also execute the :debug mode commands in the remote 
+session as follows:
 
-      Remote command    Local command   Local map
-      >next             :BPDNext        <F12>
-      >step             :BPDStep        <F11> 
-      >cont             :BPDCont        <F5>
-      >quit             :BPDQuit        <S-F5>
-      >finish           :BPDFinish      <S-F11>
+      Remote command    Local command       Local map
+      >where            :|BPDWhere|         <F7>
+      >next             :|BPDNext|          <F12>
+      >step             :|BPDStep|          <F11>
+      >cont             :|BPDCont|          <F5>
+      >quit             :|BPDQuit|          <S-F5>
+      >finish           :|BPDFinish|        <S-F11>
+      >eval             :|BPDEvaluate|      <F8>
+      >eval             :|BPDPreEvaluate|   <S-F8>
 
+                                            *BPDNext*
+                                            *BPDStep*
+                                            *BPDCont*
+                                            *BPDQuit*
+                                            *BPDFinish*
 The commands are simply relayed to the remote debugging session using the
 |client-server| features of Vim.
 
+                                            *BPDWhere*
+On remote debugging navigate to function an execution line.
+
+                                            *BPDEvaluate*
+On remote debugging evaluate expression on remote server. Use count to define
+the maximum level of inspection.
+
+                                            *BPDPreEvaluate*
+On remote debugging acts like |BPDEvaluate| but wait for user <Enter> to allow
+final modification of expression.
 ==============================================================================
 
                                             *breakpts-functions*
@@ -386,10 +407,13 @@ Here is a list of all the functions: >
       " Adds/removes breakpoint conditionally only if the hit count is >
       " skipCnt and <= expireCnt, at the given offset.
       function BPBreakIfCount(skipCnt, expireCnt, cond, offset)
+
       " Unconditional add breakpoint at the given offset.
       function BPBreak(offset)
+
       " Conditionally add breakpoint at the given offset.
       function BPBreakIf(cond, offset)
+
       " Unconditionally remove breakpoint at the given offset.
       function BPDeBreak(offset)
 <

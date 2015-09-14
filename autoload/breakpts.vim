@@ -17,6 +17,7 @@ let s:remoteServName = '.'
 let s:curLineInCntxt = '' " Current line for context.
 let s:auloadedSids = {} " A cache keyed by their autoload prefix (without #).
 let s:autoCmd = ""
+let s:autoCmdLevel = 1
 endif
 
 let breakpts#BM_SCRIPT = 'script'
@@ -887,8 +888,9 @@ function! s:SetupBuf(full)
   command! -buffer BPDNext :call <SID>Next()
   command! -buffer BPDStep :call <SID>Step()
   command! -buffer BPDFinish :call <SID>ExecDebugCmd('finish')
-  command! -buffer -nargs=1 BPDEvaluate :call <SID>EvaluateExpr(<f-args>)
-  command! -buffer -nargs=1 BPDSetAutoCommand :call <SID>SetAutoCmd(<f-args>)
+  command! -buffer -count=1 -nargs=1 BPDEvaluate :call <SID>EvaluateExpr(<f-args>, <count>)
+  command! -buffer -count=1 -nargs=1 BPDPreEvaluate :call <SID>PreEvaluateExpr(<f-args>)
+  command! -buffer -count=1 -nargs=1 BPDSetAutoCommand :call <SID>SetAutoCmd(<f-args>, <count>)
   command! -buffer -nargs=0 BPDClearAutoCommand :call <SID>ClearAutoCmd()
 
   call s:DefMap("n", "ContKey", "<F5>", ":BPDCont<CR>", 1)
@@ -899,8 +901,12 @@ function! s:SetupBuf(full)
   call s:DefMap("n", "FinishKey", "<S-F11>", ":BPDFinish<CR>", 1)
   call s:DefMap("n", "ClearAllKey", "<C-S-F9>", ":BPClearAll<CR>", 1)
   "call s:DefMap("n", "RunToCursorKey", "<C-F10>", ":BPDRunToCursor<CR>", 1)
-  call s:DefMap("n", "EvalExprKey", "<F8>", ":BPDEvaluate <C-R>=<SID>EvaluateSelection(0)<CR>", 0)
-  call s:DefMap("v", "EvalExprKey", "<F8>", ":<C-U>BPDEvaluate <C-R>=<SID>EvaluateSelection(1)<CR>", 0)
+
+  call s:DefMap("n", "EvalExprKey"   , "<F8>"  , ":<C-U>call <SID>EvaluateExpr(\"<C-R>=<SID>EvaluateSelection(0)<CR>\", v:count1)<CR>", 1)
+  call s:DefMap("v", "EvalExprKey"   , "<F8>"  , ":<C-U>call <SID>EvaluateExpr(\"<C-R>=<SID>EvaluateSelection(1)<CR>\", v:count1)<CR>", 1)
+
+  call s:DefMap("n", "PreEvalExprKey", "<S-F8>", ":<C-U>BPDPreEvaluate <C-R>=<SID>EvaluateSelection(0)<CR>", 0)
+  call s:DefMap("v", "PreEvalExprKey", "<S-F8>", ":<C-U>BPDPreEvaluate <C-R>=<SID>EvaluateSelection(1)<CR>", 0)
 
   " A bit of a setup for syntax colors.
   highlight default link BreakPtsBreakLine WarningMsg
@@ -928,7 +934,7 @@ endfunction
 
 function! s:AutoCmd()
   if s:autoCmd != ""
-    call <SID>EvaluateExpr(s:autoCmd)
+    call <SID>EvaluateExpr(s:autoCmd, s:autoCmdLevel)
   endif
 endfunction
 
@@ -1066,20 +1072,83 @@ function! s:ExecCmd(cmd) " {{{
   return 0
 endfunction " }}}
 
-function! s:EvaluateExpr(expr) " {{{
-    if s:remoteServName !=# '.' &&
-          \ remote_expr(s:remoteServName, 'mode()') ==# 'c'
-      redraw
-      echo remote_expr(s:remoteServName, "string(".a:expr.")")
-    endif
+function! s:PreEvaluateExpr(expr) " {{{
+  call <SID>EvaluateExpr(a:expr, v:count1)
+endfunction
+
+function! s:EvaluateExpr(expr, max) " {{{
+  if s:remoteServName !=# '.' &&
+        \ remote_expr(s:remoteServName, 'mode()') ==# 'c'
+    redraw
+    try 
+      echo remote_expr(s:remoteServName, "breakpts#ToJson(" . a:expr . ", 0, " . a:max . ")")
+    catch
+      echo "(ERROR): evaluating " . a:expr . " " . v:exception . ", " . v:throwpoint
+    endtry
+  endif
 endfunction " }}}
 
-function! s:SetAutoCmd(expr) " {{{
+" Inspect variables
+"
+" input: variable
+" level: actual level of nest
+" max: maximum level of nest
+function! breakpts#ToJson(input, level, max) " {{{
+  let json = ''
+  try 
+    let compute = a:level < a:max
+    let type = type(a:input)
+    if type == type({})
+      if compute
+        let parts = copy(a:input)
+        call map(parts, '"\"" . escape(v:key, "\"") . "\":" . breakpts#ToJson(v:val, ' . (a:level+1) . ',' . a:max . ")")
+        let space = repeat(" ", a:level)
+        let json .= space . " {\r\n " . space . join(values(parts), ",\r\n " . space) . "\r\n" . space ." }"
+      else
+        let json .= "{...}"
+      endif
+    elseif type == type([])
+      if compute
+        let parts = map(copy(a:input), 'breakpts#ToJson(v:val,' . (a:level+1) . ',' . a:max . ')')
+        let json .= "[" . join(parts, ",\r\n") . "]\r\n"
+      else
+        let json .= "[...]"
+      endif
+    elseif type == type(function("tr"))
+      if compute
+        let dictFunc = substitute(string(a:input), "function('\\(.\\+\\)')", "\\1", "")
+        if dictFunc+0 > 0
+          let funcName = '{' . dictFunc . '}'
+        else
+          let funcName = a:input
+        endif
+        let json .= '"' . escape(genutils#ExtractFuncListing(funcName, 0, 0), '"') . "\""
+      else
+        let json .= "func(...)"
+      endif
+    elseif type == type("string")
+      let json .= '"' . escape(a:input, '"') . "\""
+    elseif type == type(1)
+      let json .= '"' . a:input . "\""
+    elseif type == type(0.1)
+      let json .= '"' . string(a:input) . "\""
+    else
+      throw "Unknown type: " . type
+    endif
+  catch
+    let json .= "(ERROR): " . v:exception . " in " . v:throwpoint
+  endtry
+  return json
+endfunction " }}}
+
+function! s:SetAutoCmd(expr, count) " {{{
     let s:autoCmd = a:expr
+    let s:autoCmdLevel = a:count
 endfunction " }}}
 
 function! s:ClearAutoCmd() " {{{
     let s:autoCmd = ""
+    let s:autoCmdLevel = 1
 endfunction " }}}
 
 function! s:ExecDebugCmd(cmd) " {{{
