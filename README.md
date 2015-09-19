@@ -2,7 +2,7 @@
 
 Visual debbuging on vim
 
-![screenshot](res/screenshot.png)
+![Debugging tagbar with breakpts](res/screenshot.png)
 
 ## Install 
 
