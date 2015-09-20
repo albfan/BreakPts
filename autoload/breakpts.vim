@@ -68,6 +68,7 @@ let s:brkpts_locals = {
     \ "locals" : {}
     \ , "arguments" : {}
     \ , "expressions" : {}
+    \ , "loaded" : 0
     \ }
 
 function! s:brkpts_locals.locals.format(name)
@@ -87,7 +88,8 @@ function! s:brkpts_locals.arguments.parse(lines)
 endfunction
 
 function! s:brkpts_locals.locals.parse(lines)
-  return uniq(sort(map(filter(copy(a:lines), 'v:val =~ "let"'), 'substitute(v:val,".*let \\(.\\{-}\\) .*","\\1","")')))
+  let assignment = filter(copy(a:lines), 'v:val =~ "let"')
+  return uniq(sort(map(assignment, 'substitute(v:val,".*let \\(.\\{-}\\) .*","\\1","")')))
 endfunction
 
 function s:brkpts_locals.expressions.parse(lines)
@@ -95,6 +97,10 @@ function s:brkpts_locals.expressions.parse(lines)
 endfunction
 
 function! s:PrintLocals() 
+  if !s:brkpts_locals.loaded
+    call s:PopulateLocals()
+  endif
+
   let bufLocalNr = bufwinnr(g:BreakPts_locals_title)  
   if bufLocalNr == -1
     exec "vertical rightbelow new " . g:BreakPts_locals_title
@@ -108,6 +114,10 @@ function! s:PrintLocals()
 
   for key in keys(s:brkpts_locals)
     let group = s:brkpts_locals[key]
+    if type(group) != type({}) || !has_key(group, "variables")
+      unlet group
+      continue
+    endif
     if group.isFolded
       let foldmarker = s:icon_closed
     else
@@ -126,6 +136,7 @@ function! s:PrintLocals()
         silent put ='   ' . variable.name . ': ' . value
       endfor
     endif
+    unlet group
   endfor
 
   let s:ics = escape(join(g:brkpts_iconchars, ''), ']^\-')
@@ -140,6 +151,10 @@ function! ToggleFold()
   let line = line(".")
   for key in keys(s:brkpts_locals)
     let group = s:brkpts_locals[key]
+    if type(group) != type({}) || !has_key(group, "variables")
+      unlet group
+      continue
+    endif
     if group.line == line
       if group.isFolded
         let group.isFolded = 0
@@ -149,18 +164,22 @@ function! ToggleFold()
       call <SID>PrintLocals()
       break
     endif
+    unlet group
   endfor
 endfunction
 
-function! s:ClearVariables(container)
+function! s:InitLocal(container)
   let a:container.isFolded = 1
   let a:container.variables = []
 endfunction
 
 function! s:PopulateLocals()
-  call <SID>ClearVariables(s:brkpts_locals.locals)
-  call <SID>ClearVariables(s:brkpts_locals.arguments)
-  call <SID>ClearVariables(s:brkpts_locals.expressions)
+  call <SID>InitLocal(s:brkpts_locals.locals)
+  call <SID>InitLocal(s:brkpts_locals.arguments)
+  if !has_key(s:brkpts_locals.expressions, "variables")
+    call <SID>InitLocal(s:brkpts_locals.expressions)
+  endif
+  let s:brkpts_locals.loaded = 1
 
   let context = s:GetRemoteContext()
   let [mode, name, lineNo] = ParseContext(context)
@@ -168,15 +187,18 @@ function! s:PopulateLocals()
     let funcName = name 
     let funcOutput = genutils#GetVimCmdOutput('func '.funcName)
     let splitFunc = split(funcOutput, '\n')
-    for groupName in keys(s:brkpts_locals)
-      let group = s:brkpts_locals[groupName]
+    for key in keys(s:brkpts_locals)
+      let group = s:brkpts_locals[key]
+      if type(group) != type({}) || !has_key(group, "variables")
+        unlet group
+        continue
+      endif
       let names = group.parse(splitFunc)
       for name in names
         call add(group.variables, {"name": name})
       endfor
+      unlet group
     endfor
-    
-    call <SID>PrintLocals()
   endif
 endfunction
 
@@ -1053,7 +1075,7 @@ function! s:SetupBuf(full)
   nnoremap <silent> <buffer> O :BPReload<CR>
 
   command! -buffer BPDBackTrace :call <SID>PrintBacktrace()
-  command! -buffer BPDLocals :call <SID>PopulateLocals()
+  command! -buffer BPDLocals :call <SID>PrintLocals()
   command! -buffer BPDWhere :call <SID>ShowRemoteContext()
   command! -buffer BPDCont :call <SID>Cont()
   command! -buffer BPDQuit :call <SID>ExecDebugCmd('quit')
@@ -1254,6 +1276,16 @@ function! s:EvaluateExpr(expr, max) " {{{
     redraw
     try 
       echo <SID>GetRemoteExpr(a:expr, a:max)
+      if !has_key(s:brkpts_locals.expressions, "variables")
+        call s:InitLocal(s:brkpts_locals.expressions)
+      endif
+      if len(filter(copy(s:brkpts_locals.expressions.variables), "v:val.name == \"" . a:expr . "\"")) == 0
+        call add(s:brkpts_locals.expressions.variables, {"name": a:expr})
+        let bufLocalNr = bufwinnr(g:BreakPts_locals_title)  
+        if bufLocalNr != -1
+          call s:PrintLocals()
+        endif
+      endif
     catch
       echo "(ERROR): evaluating " . a:expr . " " . v:exception . ", " . v:throwpoint
     endtry
