@@ -292,11 +292,11 @@ function! s:Browser(force, browserMode, id, name) " {{{
     exec "vertical rightbelow new " . g:BreakPts_title
     call breakpts#SetupBuf()
     let s:opMode = 'user'
+    call s:ClearSigns()
   elseif bufwinnr("%") != bufBrowserNr
     noautocmd exec bufBrowserNr . 'wincmd w'
   endif
 
-  call s:ClearSigns()
   " First mark the current position so navigation will work.
   normal! mt
   setlocal modifiable
