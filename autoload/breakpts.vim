@@ -12,6 +12,7 @@ if !exists('s:myBufNum')
   
   let g:BreakPts_title = "BreakPts"
   let g:BreakPts_locals_title = "BreakPts_Locals"
+  let g:BreakPts_backtrace_title = "BreakPts_Backtrace"
   let s:BreakListing_title = "BreakPts Listing"
   let s:opMode = ""
   let s:remoteServName = '.'
@@ -193,6 +194,46 @@ function! s:GetLocalizedStrings()
   call s:_GenContext()
   exec substitute(g:BPCurContext, '\v^.*GenContext(.{-})\d+.*$', 'let s:str_in_line=''\1''', '')
 endfunction
+
+function! s:PrintBacktrace() 
+  let bufBacktraceNr = bufwinnr(g:BreakPts_backtrace_title)  
+  if bufBacktraceNr == -1
+    exec "rightbelow new " . g:BreakPts_backtrace_title
+    call breakpts#SetupBuf()
+    let s:opMode = 'user'
+  elseif bufwinnr("%") != bufBacktraceNr
+    noautocmd exec bufBacktraceNr . 'wincmd w'
+  endif
+ 
+  silent %delete_
+
+  let context = s:GetRemoteContext()
+  let [mode, name, lineNo] = ParseContext(context)
+  if name != ''
+    let backtraceList = map(split(context,'\.\.'), 'split(substitute(v:val, "^function ", "", ""), ",.*".s:str_line." ")')
+    let pos = 0
+    for trace in backtraceList
+      let line = trace[0]
+      if len(trace) > 1
+        let line = trace[0] . ":" . trace[1]
+      endif
+      silent put ='[' . pos . '] ' . line
+      let pos += 1
+    endfor
+  endif
+
+  let s:ics = escape('[]', ']^\-')
+  let s:pattern = '\S\@<![' . s:ics . ']\([-+# ]\?\)\@='
+  execute "syntax match TagbarFoldIcon '" . s:pattern . "'"
+  highlight default link TagbarFoldIcon   Statement
+
+  map <buffer> <silent> <Enter> :call GoToFunction()<CR>
+endfunction
+
+function! GoToFunction()
+  " TODO:
+endfunction
+
 " Initialization }}}
 
 
@@ -1011,6 +1052,7 @@ function! s:SetupBuf(full)
   nnoremap <silent> <buffer> ]b :BPNext<CR>
   nnoremap <silent> <buffer> O :BPReload<CR>
 
+  command! -buffer BPDBackTrace :call <SID>PrintBacktrace()
   command! -buffer BPDLocals :call <SID>PopulateLocals()
   command! -buffer BPDWhere :call <SID>ShowRemoteContext()
   command! -buffer BPDCont :call <SID>Cont()
