@@ -132,11 +132,13 @@ function! s:PrintLocals()
     if !group.isFolded
       for variable in group.variables
         try
-          let value = <SID>GetRemoteExpr(group.format(variable.name), 1, 6)
+          let value = <SID>GetRemoteExpr(group.format(variable.name), variable.level, 6)
         catch
           let value = "(undefined)"
         endtry
+        let varline = line('.') + 1
         silent put ='   ' . variable.name . ': ' . value
+        let variable.line = varline
       endfor
     endif
     unlet group
@@ -148,6 +150,41 @@ function! s:PrintLocals()
   highlight default link TagbarFoldIcon   Statement
 
   map <buffer> <silent> <Enter> :call ToggleFold()<CR>
+  map <buffer> <silent> + :call IncreaseVariableLevel()<CR>
+  map <buffer> <silent> - :call DecreaseVariableLevel()<CR>
+endfunction
+
+function! IncreaseVariableLevel()
+  call ChangeLevel(1)
+endfunction
+
+function! DecreaseVariableLevel()
+  call ChangeLevel(-1)
+endfunction
+
+function! ChangeLevel(incr)
+  let line = line(".")
+  for key in keys(s:brkpts_locals)
+    let group = s:brkpts_locals[key]
+    if type(group) != type({}) || !has_key(group, "variables")
+      unlet group
+      continue
+    endif
+    if group.line < line
+      if !group.isFolded
+        for variable in group.variables
+          if variable.line == line
+            let variable.level += a:incr
+            call <SID>PrintLocals()
+            execute 'normal ' . line . 'G'
+            normal zz
+            return
+          endif
+        endfor
+      endif
+    endif
+    unlet group
+  endfor
 endfunction
 
 function! ToggleFold()
@@ -165,6 +202,8 @@ function! ToggleFold()
         let group.isFolded = 1
       endif
       call <SID>PrintLocals()
+      execute 'normal ' . line . 'G'
+      normal zz
       break
     endif
     unlet group
@@ -198,7 +237,7 @@ function! s:PopulateLocals()
       endif
       let names = group.parse(splitFunc)
       for name in names
-        call add(group.variables, {"name": name})
+        call add(group.variables, {"name": name, "level": 1})
       endfor
       unlet group
     endfor

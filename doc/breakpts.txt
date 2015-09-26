@@ -394,7 +394,8 @@ On remote debugging acts like |BPDEvaluate| but wait for user <Enter> to allow
 final modification of expression.
 
                                             *BPDLocals*
-On remote debugging shows variables, arguments and evaluated expressions.
+On remote debugging shows variables, arguments and evaluated expressions. 
+Use `<+>`/<`->` upon desired variable to zoom in/out.
 
                                             *BPDBacktrace*
 On remote debugging show call stack to debugging point. Press <Enter> to go
