@@ -132,7 +132,7 @@ function! s:PrintLocals()
     if !group.isFolded
       for variable in group.variables
         try
-          let value = <SID>GetRemoteExpr(group.format(variable.name), 1)
+          let value = <SID>GetRemoteExpr(group.format(variable.name), 1, 6)
         catch
           let value = "(undefined)"
         endtry
@@ -1320,7 +1320,7 @@ function! s:EvaluateExpr(expr, max) " {{{
         \ remote_expr(s:remoteServName, 'mode()') ==# 'c'
     redraw
     try 
-      echo <SID>GetRemoteExpr(a:expr, a:max)
+      echo <SID>GetRemoteExpr(a:expr, a:max, 0)
       if !has_key(s:brkpts_locals.expressions, "variables")
         call s:InitLocal(s:brkpts_locals.expressions)
       endif
@@ -1337,8 +1337,8 @@ function! s:EvaluateExpr(expr, max) " {{{
   endif
 endfunction " }}}
 
-function! s:GetRemoteExpr(expr, max) " {{{
-  return remote_expr(s:remoteServName, "breakpts#ToJson(" . a:expr . ", 0, " . a:max . ")")
+function! s:GetRemoteExpr(expr, max, indent) " {{{
+  return remote_expr(s:remoteServName, "breakpts#ToJson(" . a:expr . ", 0, " . a:max . ", " . a:indent . ")")
 endfunction " }}}
 
 " Inspect variables
@@ -1346,7 +1346,7 @@ endfunction " }}}
 " input: variable
 " level: actual level of nest
 " max: maximum level of nest
-function! breakpts#ToJson(input, level, max) " {{{
+function! breakpts#ToJson(input, level, max, indent) " {{{
   let json = ''
   try 
     let compute = a:level < a:max
@@ -1354,16 +1354,17 @@ function! breakpts#ToJson(input, level, max) " {{{
     if type == type({})
       if compute
         let parts = copy(a:input)
-        call map(parts, '"\"" . escape(v:key, "\"") . "\":" . breakpts#ToJson(v:val, ' . (a:level+1) . ',' . a:max . ")")
-        let space = repeat(" ", a:level)
-        let json .= space . " {\r\n " . space . join(values(parts), ",\r\n " . space) . "\r\n" . space ." }"
+        call map(parts, '"\"" . escape(v:key, "\"") . "\":" . breakpts#ToJson(v:val, ' . (a:level+1) . ',' . a:max . ", " . a:indent . ")")
+        let space = repeat(" ", a:indent + a:level)
+        let json .= "{\n" . space . join(values(parts), ",\n " . space) . "\n" . space ."}"
       else
         let json .= "{...}"
       endif
     elseif type == type([])
       if compute
-        let parts = map(copy(a:input), 'breakpts#ToJson(v:val,' . (a:level+1) . ',' . a:max . ')')
-        let json .= "[" . join(parts, ",\r\n") . "]\r\n"
+        let parts = map(copy(a:input), 'breakpts#ToJson(v:val, ' . (a:level+1) . ', ' . a:max . ', ' . a:indent . ')')
+        let space = repeat(" ", a:indent + a:level)
+        let json .= "[" . join(parts, ",\n" . space) . "]\n"
       else
         let json .= "[...]"
       endif
