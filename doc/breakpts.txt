@@ -371,6 +371,8 @@ session as follows:
       >finish           :|BPDFinish|        <S-F11>
       >eval             :|BPDEvaluate|      <F8>
       >eval             :|BPDPreEvaluate|   <S-F8>
+      >local            :|BPDLocals|
+      >backtrace        :|BPDBacktrace|
 
                                             *BPDNext*
                                             *BPDStep*
@@ -390,6 +392,13 @@ the maximum level of inspection.
                                             *BPDPreEvaluate*
 On remote debugging acts like |BPDEvaluate| but wait for user <Enter> to allow
 final modification of expression.
+
+                                            *BPDLocals*
+On remote debugging shows variables, arguments and evaluated expressions.
+
+                                            *BPDBacktrace*
+On remote debugging show call stack to debugging point. Press <Enter> to go
+to selected function.
 ==============================================================================
 
                                             *breakpts-functions*

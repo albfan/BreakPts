@@ -48,6 +48,11 @@ Once loaded you can set breakpoints from connected vim with:
     :BPScripts (Show debuggeable scripts on RemoteServer)
     :BPPoints (Show defined breakpoints on RemoteServer)
 
+Once on debugging you can use:
+
+    :BPDLocals (Variables and arguments to functions)
+    :BPDBacktrace (Call stack to debugging point)
+
 I have fix/tweak/evolve a lot of vim plugins thanks to this great plugin.
 
 ## Requirements

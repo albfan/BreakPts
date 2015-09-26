@@ -34,9 +34,12 @@ let s:cmd_breakpts = 'breaklist'
 let s:header{breakpts#BM_SCRIPTS} = 'Scripts:'
 let s:header{breakpts#BM_FUNCTIONS} = 'Functions:'
 let s:header{breakpts#BM_BRKPTS} = 'Breakpoints:'
-"let s:header{breakpts#BM_SCRIPT}= "'Script: '.a:curScript.' (Id: '.a:curScriptId.')'"
-"let s:browserMode = breakpts#BM_FUNCTION
-let s:FUNC_NAME_PAT = '\%(<SNR>\d\+_\)\?\k\+' | lockvar s:FUNC_NAME_PAT
+
+if has("patch-7.4.879")
+  let s:FUNC_NAME_PAT = '\%(<SNR>\d\+_\)\?\k\+\%(\[\d\+\]\)\?' | lockvar s:FUNC_NAME_PAT
+else
+  let s:FUNC_NAME_PAT = '\%(<SNR>\d\+_\)\?\k\+' | lockvar s:FUNC_NAME_PAT
+endif
 
 function! s:MyScriptId()
   map <SID>xx <SID>xx
@@ -232,28 +235,70 @@ function! s:PrintBacktrace()
   let context = s:GetRemoteContext()
   let [mode, name, lineNo] = ParseContext(context)
   if name != ''
-    let backtraceList = map(split(context,'\.\.'), 'split(substitute(v:val, "^function ", "", ""), ",.*".s:str_line." ")')
+    let backtraceList = split(substitute(context, "^function ", "", ""),'\.\.')
+    let backtraceList = map(backtraceList, 'split(v:val, ",.*".s:str_line." ")')
     let pos = 0
+    if exists("b:traceInfo")
+      if !empty(b:traceInfo)
+        call remove(b:traceInfo,0,-1)
+      endif
+    else
+      let b:traceInfo = []
+    endif
     for trace in backtraceList
-      let line = trace[0]
       if len(trace) > 1
-        let line = trace[0] . ":" . trace[1]
+        call add(b:traceInfo, {"function": trace[0], "line": trace[1]})
+      else
+        if has("patch-7.4.879")
+          call substitute(trace[0], '\(.*\)\[\(\d\+\)\]', 
+            \ '\=add(b:traceInfo, { "function": submatch(1), "line": submatch(2)})', '') 
+        else
+          call add(b:traceInfo, {"function": trace[0], "line": FindLineFunctionCall(traceInfo,trace[0], pos)})
+        endif 
+      endif
+      let traceObj = b:traceInfo[pos]
+      let line = traceObj.function
+      let lineNum = traceObj.line
+      if lineNum != -1
+        let line = line . ":" . lineNum
       endif
       silent put ='[' . pos . '] ' . line
+      let traceObj.offset = line(".")
       let pos += 1
     endfor
   endif
 
-  let s:ics = escape('[]', ']^\-')
-  let s:pattern = '\S\@<![' . s:ics . ']\([-+# ]\?\)\@='
+  let s:pattern = '\[\|\]'
   execute "syntax match TagbarFoldIcon '" . s:pattern . "'"
   highlight default link TagbarFoldIcon   Statement
 
   map <buffer> <silent> <Enter> :call GoToFunction()<CR>
 endfunction
 
+function! FindLineFunctionCall(traceInfo, functionName, pos)
+  if pos == 0
+    "first level backtrace, imposible to infere
+    return -1
+  else
+    let trace = traceInfo[pos-1] 
+    "TODO: List function and find ocurrences of functionName. If only one
+    "match, thats the line, else add as proposals
+    return -1
+  endif
+endfunction
+
 function! GoToFunction()
-  " TODO:
+  let offset = line(".")
+  for trace in b:traceInfo
+    if trace.offset == offset
+      call s:OpenListing(0, g:breakpts#BM_FUNCTION, '', trace.function)
+      let line = trace.line
+      if line != -1
+        call search('^'. line .'\>', 'w')
+      endif
+      break
+    endif
+  endfor
 endfunction
 
 " Initialization }}}
