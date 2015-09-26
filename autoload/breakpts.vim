@@ -226,7 +226,7 @@ function! s:PopulateLocals()
   let context = s:GetRemoteContext()
   let [mode, name, lineNo] = ParseContext(context)
   if name != ''
-    let funcName = name 
+    let funcName = s:GetFuncRefName(name)
     let funcOutput = genutils#GetVimCmdOutput('func '.funcName)
     let splitFunc = split(funcOutput, '\n')
     for key in keys(s:brkpts_locals)
@@ -242,6 +242,15 @@ function! s:PopulateLocals()
       unlet group
     endfor
   endif
+endfunction
+
+function! s:GetFuncRefName(name)
+  if (a:name+0 > 0)
+    let funcName = '{' . a:name . '}'
+  else
+    let funcName = a:name
+  endif
+  return funcName
 endfunction
 
 let s:brkpts_locals.locals.isFolded = 0
@@ -486,11 +495,7 @@ endfunction " }}}
 
 function! s:List_function(sid, funcName) " {{{
 
-  if (a:funcName+0 > 0)
-    let funcName = '{'.a:funcName.'}'
-  else
-    let funcName = a:funcName
-  endif
+  let funcName = s:GetFuncRefName(a:funcName)
 
   let funcListing = s:GetVimCmdOutput('function ' . funcName)
   if funcListing == ""
