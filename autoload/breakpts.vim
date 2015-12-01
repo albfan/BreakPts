@@ -329,6 +329,7 @@ function! s:PrintBacktrace()
     let backtraceList = split(substitute(context, "^function ", "", ""),'\.\.')
     let backtraceList = map(backtraceList, 'split(v:val, ",.*".s:str_line." ")')
     let pos = 0
+    let markPos = 0
     if exists("b:traceInfo")
       if !empty(b:traceInfo)
         call remove(b:traceInfo,0,-1)
@@ -355,8 +356,10 @@ function! s:PrintBacktrace()
       endif
       silent put ='[' . pos . '] ' . line
       let traceObj.offset = line(".")
+      let markPos = pos
       let pos += 1
     endfor
+    call s:MarkCurLineInCntxt(markPos)
   endif
 
   let s:pattern = '\[\|\]'
@@ -382,10 +385,13 @@ function! GoToFunction()
   let offset = line(".")
   for trace in b:traceInfo
     if trace.offset == offset
+      call <SID>ExecDebugCmd('backtrace ' . offset)
+      call s:MarkCurLineInCntxt(offset)
       call s:OpenListing(0, g:breakpts#BM_FUNCTION, '', trace.function)
       let line = trace.line
       if line != -1
         call search('^'. line .'\>', 'w')
+        call s:MarkCurLineInCntxt(line('.'))
       endif
       break
     endif
@@ -1211,6 +1217,8 @@ function! s:SetupBuf(full)
   command! -buffer BPDNext :call <SID>Next()
   command! -buffer BPDStep :call <SID>Step()
   command! -buffer BPDFinish :call <SID>ExecDebugCmd('finish')
+  command! -buffer BPDUp :call <SID>ExecDebugCmd('up')
+  command! -buffer BPDDown :call <SID>ExecDebugCmd('down')
   command! -buffer -count=1 -nargs=1 BPDEvaluate :call <SID>EvaluateExpr(<f-args>, <count>)
   command! -buffer -count=1 -nargs=1 BPDPreEvaluate :call <SID>PreEvaluateExpr(<f-args>)
   command! -buffer -count=1 -nargs=1 BPDSetAutoCommand :call <SID>SetAutoCmd(<f-args>, <count>)
