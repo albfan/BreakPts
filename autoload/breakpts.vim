@@ -1369,7 +1369,7 @@ function! s:EvaluateExpr(expr, max) " {{{
         call s:InitLocal(s:brkpts_locals.expressions)
       endif
       if len(filter(copy(s:brkpts_locals.expressions.variables), "v:val.name == \"" . a:expr . "\"")) == 0
-        call add(s:brkpts_locals.expressions.variables, {"name": a:expr})
+        call add(s:brkpts_locals.expressions.variables, {"name": a:expr, "level": 1})
         let bufLocalNr = bufwinnr(g:BreakPts_locals_title)  
         if bufLocalNr != -1
           call s:PrintLocals()
