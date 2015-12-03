@@ -87,7 +87,27 @@ function! s:brkpts_locals.expressions.format(name)
 endfunction
 
 function! s:brkpts_locals.arguments.parse(lines)
-  return split(substitute(a:lines[0], ".*(\\(.*\\)).*", "\\1", ""), '\s*,\s*')
+  let func_def = a:lines[0]
+  let str_arguments = substitute(func_def, '.*(\(.*\)).*', '\1', '')
+  if str_arguments == ""
+    return []
+  endif
+  let arguments = split(str_arguments, '\s*,\s*')
+  if arguments[len(arguments)-1] == "..."
+    call remove(arguments, len(arguments)-1) 
+    call add(arguments, '000')
+    let pos_arg = 0
+    let maxargs = s:EvalExpr('a:0')
+    while pos_arg <= maxargs
+      call add(arguments, pos_arg) 
+      let pos_arg += 1
+    endwhile
+  endif
+  if func_def =~ "range$"
+    call add(arguments, "firstline")
+    call add(arguments, "lastline")
+  endif
+  return arguments
 endfunction
 
 function! s:brkpts_locals.locals.parse(lines)
