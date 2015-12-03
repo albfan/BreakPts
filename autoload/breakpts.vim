@@ -224,10 +224,10 @@ function! s:PopulateLocals()
   let s:brkpts_locals.loaded = 1
 
   let context = s:GetRemoteContext()
-  let [mode, name, lineNo] = ParseContext(context)
-  if name != ''
-    let funcName = s:GetFuncRefName(name)
-    let funcOutput = genutils#GetVimCmdOutput('func '.funcName)
+  let [mode, funcName, lineNo] = ParseContext(context)
+  if funcName != ''
+    let funcName = s:GetFuncRefName(funcName)
+    let funcOutput = s:GetVimCmdOutput('function '.funcName)
     let splitFunc = split(funcOutput, '\n')
     for key in keys(s:brkpts_locals)
       let group = s:brkpts_locals[key]
@@ -235,10 +235,11 @@ function! s:PopulateLocals()
         unlet group
         continue
       endif
-      let names = group.parse(splitFunc)
-      for name in names
-        call add(group.variables, {"name": name, "level": 1})
+      let variables = group.parse(splitFunc)
+      for var in variables
+        call add(group.variables, {"name": var, "level": 1})
       endfor
+      unlet variables
       unlet group
     endfor
   endif
