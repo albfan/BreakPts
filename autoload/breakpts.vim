@@ -111,8 +111,23 @@ function! s:brkpts_locals.arguments.parse(lines)
 endfunction
 
 function! s:brkpts_locals.locals.parse(lines)
-  let assignment = filter(copy(a:lines), 'v:val =~ "let"')
-  return uniq(sort(map(assignment, 'substitute(v:val,".*let \\(.\\{-}\\) .*","\\1","")')))
+  let assignments = filter(copy(a:lines), "v:val =~ '^\\d\\+\\s*\\<\\(let\\|for\\)\\>'")
+  let new_assignments = []
+  for pos in range(0, len(assignments) - 1)
+    let assignment = get(assignments, pos)
+    if assignment =~ 'let\s\+\[.\+\]' 
+      let vars = split(substitute(assignment, '^\d\+\s*let\s\+\[\(.\{-}\)\].*', '\1', ''), '\s*,\s*') 
+      for var in vars
+        call add(new_assignments, "let " . var)
+      endfor
+    elseif assignment =~ '^\d\+\s*for\s\+.*\s\+in'
+      let var = substitute(assignment, '^\d\+\s*for\s\+\(.\{-}\)\s\+in.*', '\1', '') 
+      call add(new_assignments, "let " . var)
+    else
+      call add(new_assignments, assignment)
+    endif
+  endfor
+  return uniq(sort(map(new_assignments, "substitute(v:val, '^.\\{-}let\\s\\{-}\\([^[:space:]]\\+\\).*','\\1','')")))
 endfunction
 
 function s:brkpts_locals.expressions.parse(lines)
