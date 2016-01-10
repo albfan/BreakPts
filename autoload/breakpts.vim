@@ -256,7 +256,7 @@ function! s:PopulateLocals()
   if !has_key(s:brkpts_locals.expressions, "variables")
     call <SID>InitLocal(s:brkpts_locals.expressions)
   endif
-  let s:brkpts_locals.loaded = 1
+  "let s:brkpts_locals.loaded = 1
 
   let context = s:GetRemoteContext()
   let [mode, funcName, lineNo] = ParseContext(context)
