@@ -263,7 +263,7 @@ function! s:PopulateLocals()
   if !has_key(s:brkpts_locals.expressions, "variables")
     call <SID>InitLocal(s:brkpts_locals.expressions)
   endif
-  "let s:brkpts_locals.loaded = 1
+  let s:brkpts_locals.loaded = 1
 
   let context = s:GetRemoteContext()
   let [mode, funcName, lineNo] = ParseContext(context)
@@ -339,13 +339,13 @@ function! s:PrintBacktrace()
     endif
     for trace in backtraceList
       if len(trace) > 1
-        call add(b:traceInfo, {"function": trace[0], "line": trace[1]})
+        call add(b:traceInfo, {"function": trace[0], "line": trace[1], "frame": pos})
       else
         if has("patch-7.4.879")
           call substitute(trace[0], '\(.*\)\[\(\d\+\)\]', 
-            \ '\=add(b:traceInfo, { "function": submatch(1), "line": submatch(2)})', '') 
+            \ '\=add(b:traceInfo, { "function": submatch(1), "line": submatch(2) , "frame": '.pos.'})', '') 
         else
-          call add(b:traceInfo, {"function": trace[0], "line": FindLineFunctionCall(traceInfo,trace[0], pos)})
+          call add(b:traceInfo, {"function": trace[0], "line": FindLineFunctionCall(traceInfo,trace[0], pos), "frame": pos})
         endif 
       endif
       let traceObj = b:traceInfo[pos]
@@ -385,7 +385,7 @@ function! GoToFunction()
   let offset = line(".")
   for trace in b:traceInfo
     if trace.offset == offset
-      call <SID>ExecDebugCmd('backtrace ' . offset)
+      call <SID>ExecDebugCmd('frame ' . (len(b:traceInfo) - 1 - trace.frame))
       call s:MarkCurLineInCntxt(offset)
       call s:OpenListing(0, g:breakpts#BM_FUNCTION, '', trace.function)
       let line = trace.line
