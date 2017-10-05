@@ -51,8 +51,14 @@ let s:myScriptId = s:MyScriptId()
 delfunction s:MyScriptId
 
 if has("signs")
-  sign define VimBreakPt linehl=BreakPtsBreakLine text=!! texthl=BreakPtsBreakLine
-  sign define VimBreakDbgCur text=>>
+  if has('multi_byte') && has('unix') && &encoding == 'utf-8' &&
+      \ (empty(&termencoding) || &termencoding == 'utf-8')
+    sign define VimBreakPt linehl=BreakPtsBreakLine text=✔ texthl=BreakPtsBreakLine
+    sign define VimBreakDbgCur text=➤
+  else
+    sign define VimBreakPt linehl=BreakPtsBreakLine text=\/ texthl=BreakPtsBreakLine
+    sign define VimBreakDbgCur text=->
+  endif
 endif
 
 if !exists('g:brkpts_iconchars')
