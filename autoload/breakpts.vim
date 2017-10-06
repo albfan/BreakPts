@@ -443,7 +443,7 @@ endfunction " }}}
 "   browser window is gauranteed to be already open (which is where the user
 "   must have executed the command in the first place).
 function! s:Browser(force, browserMode, id, name) " {{{
-
+  call s:ClearSigns()
   let bufBrowserNr = bufwinnr(g:BreakPts_title)  
   if bufBrowserNr == -1
     exec "vertical rightbelow new " . g:BreakPts_title
@@ -720,7 +720,6 @@ function! s:MarkCurLineInCntxt(pos)
       "when highlight is too much set a sign (and clear previous)
       exe ':sign place ' . a:pos . ' name=' . s:VimBreakDbgCur . ' line=' . a:pos . ' buffer=' . winbufnr(0)
       try
-        "TODO: remove old sign
         exe ':sign unplace ' . old_cur_pos . ' buffer=' . winbufnr(0)
       catch /.*/
       endtry
@@ -815,8 +814,6 @@ function! s:RemoveBreakPoint(name, mode, browserMode, brkLine)
   echo s:GetMessage("Break point cleared for: ", name, lnum)
   if index(b:brkPtLines, line('.')) != -1
     call remove(b:brkPtLines, index(b:brkPtLines, line('.')))
-    " FIXME: There could be multiple breakpoints at the same line, but we
-    " don't handle this properly.
     if index(b:brkPtLines, line('.')) == -1 && has("signs")
       sign unplace
     endif
@@ -865,11 +862,8 @@ function! s:ClearSigns()
     call genutils#SaveHardPosition('ClearSigns')
     let linesCleared = []
     for nextBrkLine in b:brkPtLines
-      "exec 'sign unplace ' . nextBrkLine . ' buffer=' . bufnr('%')
       if index(linesCleared, nextBrkLine) == -1 && has("signs")
         exec nextBrkLine
-        " FIXME: Weird, I am getting E159 here. This used to work fine.
-        "sign unplace
         exec 'sign unplace' nextBrkLine
       endif
       call add(linesCleared, nextBrkLine)
@@ -1782,8 +1776,6 @@ endfunction
 
 function! s:NavigateForward()
   call s:Navigate("\<C-R>")
-  call s:MarkBreakPoints(s:GetListingName())
-  "normal zM
 endfunction
 
 
