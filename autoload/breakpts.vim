@@ -51,6 +51,7 @@ let s:myScriptId = s:MyScriptId()
 delfunction s:MyScriptId
 
 if has("signs")
+  sign define EmptyBreakPt
   if has('multi_byte') && has('unix') && &encoding == 'utf-8' &&
       \ (empty(&termencoding) || &termencoding == 'utf-8')
     sign define VimBreakPt linehl=BreakPtsBreakLine text=✔ texthl=BreakPtsBreakLine
@@ -707,6 +708,9 @@ function! s:MarkBreakPoints(name)
             \ g:brkptsFoldContext
       1
     endif
+  else
+    exec 'sign place 9999 line=1'
+          \ ' name=EmptyBreakPt buffer=' . bufnr('%')
   endif
   call s:MarkCurLineInCntxt(s:curLineInCntxt+2)
   return
