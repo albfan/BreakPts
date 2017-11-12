@@ -94,6 +94,9 @@ function! s:brkpts_locals.expressions.format(name)
 endfunction
 
 function! s:brkpts_locals.arguments.parse(lines)
+  if empty(a:lines)
+    return []
+  endif
   let func_def = a:lines[0]
   let str_arguments = substitute(func_def, '.*(\(.*\)).*', '\1', '')
   if str_arguments == ""
@@ -142,12 +145,13 @@ function s:brkpts_locals.expressions.parse(lines)
 endfunction
 
 function! s:PrintLocals() 
-  if !s:brkpts_locals.loaded
+  let bufLocalNr = bufwinnr(g:BreakPts_locals_title)  
+  let noBufferLocals = bufLocalNr == -1
+  if noBufferLocals || !s:brkpts_locals.loaded
     call s:PopulateLocals()
   endif
 
-  let bufLocalNr = bufwinnr(g:BreakPts_locals_title)  
-  if bufLocalNr == -1
+  if noBufferLocals
     exec "vertical rightbelow new " . g:BreakPts_locals_title
     call breakpts#SetupBuf()
     let s:opMode = 'user'
@@ -323,50 +327,93 @@ function! s:PrintBacktrace()
  
   silent %delete_
 
-  let context = s:GetRemoteContext()
-  let [mode, name, lineNo] = ParseContext(context)
-  if name != ''
-    let backtraceList = split(substitute(context, "^function ", "", ""),'\.\.')
-    let backtraceList = map(backtraceList, 'split(v:val, ",.*".s:str_line." ")')
+  let parseBacktrace = 1
+  if parseBacktrace == 1
+    call s:LoadBacktraceInfo()
+  else
     let pos = 0
-    let markPos = 0
-    if exists("b:traceInfo")
-      if !empty(b:traceInfo)
-        call remove(b:traceInfo,0,-1)
-      endif
-    else
-      let b:traceInfo = []
-    endif
-    for trace in backtraceList
-      if len(trace) > 1
-        call add(b:traceInfo, {"function": trace[0], "line": trace[1], "frame": pos})
+    let context = s:GetRemoteContext()
+    let [mode, name, lineNo] = ParseContext(context)
+    if name != ''
+      let backtraceList = split(substitute(context, "^function ", "", ""),'\.\.')
+      let backtraceList = map(backtraceList, 'split(v:val, ",.*".s:str_line." ")')
+      if exists("b:traceInfo")
+        if !empty(b:traceInfo)
+          call remove(b:traceInfo,0,-1)
+        endif
       else
-        if has("patch-7.4.879")
-          call substitute(trace[0], '\(.*\)\[\(\d\+\)\]', 
-            \ '\=add(b:traceInfo, { "function": submatch(1), "line": submatch(2) , "frame": '.pos.'})', '') 
+        let b:traceInfo = []
+      endif
+      for trace in backtraceList
+        if len(trace) > 1
+          call add(b:traceInfo, {"function": trace[0], "line": trace[1], "frame": pos, "current": 0})
         else
-          call add(b:traceInfo, {"function": trace[0], "line": FindLineFunctionCall(traceInfo,trace[0], pos), "frame": pos})
-        endif 
-      endif
-      let traceObj = b:traceInfo[pos]
-      let line = traceObj.function
-      let lineNum = traceObj.line
-      if lineNum != -1
-        let line = line . ":" . lineNum
-      endif
-      silent put ='[' . pos . '] ' . line
-      let traceObj.offset = line(".")
-      let markPos = pos
-      let pos += 1
-    endfor
-    call s:MarkCurLineInCntxt(markPos)
+          if has("patch-7.4.879")
+            call substitute(trace[0], '\(.*\)\[\(\d\+\)\]', 
+              \ '\=add(b:traceInfo, { "function": submatch(1), "line": submatch(2) , "frame": '.pos.', "current": 0})', '') 
+          else
+            call add(b:traceInfo, {"function": trace[0], "line": FindLineFunctionCall(traceInfo,trace[0], pos), "frame": pos, "current": 0})
+          endif 
+        endif
+        let pos += 1
+      endfor
+    endif
   endif
+
+  for traceObj in b:traceInfo
+    let funcName = traceObj.function
+    let lineNum = traceObj.line
+    if lineNum != -1
+      let funcName = funcName . ":" . lineNum
+    endif
+    silent put ='[' . traceObj.frame . '] ' . funcName
+    let traceObj.offset = line(".")
+    if traceObj.current
+      call s:MarkCurLine(traceObj.offset, 0)
+    endif
+  endfor
 
   let s:pattern = '\[\|\]'
   execute "syntax match TagbarFoldIcon '" . s:pattern . "'"
   highlight default link TagbarFoldIcon   Statement
 
   map <buffer> <silent> <Enter> :call GoToFunction()<CR>
+endfunction
+
+function! s:LoadBacktraceInfo()
+  let pos = 0
+  let context = <SID>ReadDebugCmd('backtrace')
+  "  1 function Foo[2]
+  "->0 Bar
+  "línea 2: return a:argBar1.' '.a:argBar2
+  if context != ''
+    let backtraceList = split(context, '\n')
+  endif
+  if exists("b:traceInfo")
+    if !empty(b:traceInfo)
+      call remove(b:traceInfo,0,-1)
+    endif
+  else
+    let b:traceInfo = []
+  endif
+
+  let c = 0
+  while c < len(backtraceList)
+    let trace = backtraceList[c]
+    let c += 1
+    exec substitute(trace,
+        \ '^\(  \|->\)\([0-9]\+\) \%\(function \)\?\(\w\+\)\%\(\[\([0-9]\+\)\]\)\?',
+        \ 'let currentFrame="\1" == "->" | let frameLevel=\2 | let funcName="\3" | let lnum = "\4"', '')
+    if lnum == ''
+      let trace = backtraceList[c]
+      let c += 1
+      exec substitute(trace,
+          \ '^'.s:str_line.' \([0-9]\+\):.\+',
+          \ 'let lnum = \1', '')
+    endif
+    call add(b:traceInfo, {"function": funcName, "line": lnum, "frame": frameLevel, "current": currentFrame})
+    let pos += 1
+  endwhile
 endfunction
 
 function! FindLineFunctionCall(traceInfo, functionName, pos)
@@ -385,15 +432,17 @@ function! GoToFunction()
   let offset = line(".")
   for trace in b:traceInfo
     if trace.offset == offset
+      let trace.current = 1
       call <SID>ExecDebugCmd('frame ' . (len(b:traceInfo) - 1 - trace.frame))
-      call s:MarkCurLineInCntxt(offset)
+      call s:MarkCurLine(offset, 0)
       call s:OpenListing(0, g:breakpts#BM_FUNCTION, '', trace.function)
       let line = trace.line
       if line != -1
         call search('^'. line .'\>', 'w')
         call s:MarkCurLineInCntxt(line('.'))
       endif
-      break
+    else
+      let trace.current = 0
     endif
   endfor
 endfunction
@@ -456,7 +505,7 @@ function! s:Browser(force, browserMode, id, name) " {{{
     exec "vertical rightbelow new " . g:BreakPts_title
     call breakpts#SetupBuf()
     let s:opMode = 'user'
-    call s:ClearSigns()
+    "call s:ClearSigns()
   elseif bufwinnr("%") != bufBrowserNr
     noautocmd exec bufBrowserNr . 'wincmd w'
   endif
@@ -725,18 +774,19 @@ endfunction
 function! s:MarkCurLineInCntxt(pos)
   silent! syn clear BreakPtsContext
   if s:curLineInCntxt != '' && s:GetListingName() == s:curNameInCntxt
-    let useSigns = 0
-    if useSigns
-      "when highlight is too much set a sign (and clear previous)
-      exe ':sign place ' . a:pos . ' name=' . s:VimBreakDbgCur . ' line=' . a:pos . ' buffer=' . winbufnr(0)
-      try
-        exe ':sign unplace ' . old_cur_pos . ' buffer=' . winbufnr(0)
-      catch /.*/
-      endtry
-    else
-      exec 'match BreakPtsContext "\%'.a:pos.'l.*"'
-    endif
+    call s:MarkCurLine(a:pos, 0)
+  endif
+endfunction
 
+function! s:MarkCurLine(pos, useSigns)
+  if a:useSigns
+    try
+      exe ':sign unplace ' . old_cur_pos . ' buffer=' . winbufnr(0)
+    catch /.*/
+    endtry
+    exe ':sign place ' . a:pos . ' name=' . s:VimBreakDbgCur . ' line=' . a:pos . ' buffer=' . winbufnr(0)
+  else
+    exec 'match BreakPtsContext "\%'.a:pos.'l.*"'
   endif
 endfunction
 " }}}
@@ -1217,8 +1267,8 @@ function! s:SetupBuf(full)
   command! -buffer BPDNext :call <SID>Next()
   command! -buffer BPDStep :call <SID>Step()
   command! -buffer BPDFinish :call <SID>ExecDebugCmd('finish')
-  command! -buffer BPDUp :call <SID>ExecDebugCmd('up')
-  command! -buffer BPDDown :call <SID>ExecDebugCmd('down')
+  command! -buffer BPDUp :call <SID>Up()
+  command! -buffer BPDDown :call <SID>Down()
   command! -buffer -count=1 -nargs=1 BPDEvaluate :call <SID>EvaluateExpr(<f-args>, <count>)
   command! -buffer -count=1 -nargs=1 BPDPreEvaluate :call <SID>PreEvaluateExpr(<f-args>)
   command! -buffer -count=1 -nargs=1 BPDSetAutoCommand :call <SID>SetAutoCmd(<f-args>, <count>)
@@ -1246,6 +1296,18 @@ function! s:SetupBuf(full)
   highlight default link BreakPtsScriptId Number
 
   normal zM
+endfunction
+
+function! s:Down()
+  let s:brkpts_locals.loaded = 0
+  call <SID>ExecDebugCmd('down')
+  call <SID>AutoCmd()
+endfunction
+
+function! s:Up()
+  let s:brkpts_locals.loaded = 0
+  call <SID>ExecDebugCmd('up')
+  call <SID>AutoCmd()
 endfunction
 
 function! s:Cont()
@@ -1513,6 +1575,21 @@ function! s:ExecDebugCmd(cmd) " {{{
   endtry
 endfunction " }}}
 
+function! s:ReadDebugCmd(cmd) " {{{
+  try
+    if s:remoteServName !=# '.' &&
+          \ remote_expr(s:remoteServName, 'mode()') ==# 'c'
+      call remote_send(s:remoteServName, "\<C-U>redir => output\<CR>")
+      call remote_send(s:remoteServName, "\<C-U>".a:cmd."\<CR>")
+      call remote_send(s:remoteServName, "\<C-U>redir END\<CR>")
+      return remote_expr(s:remoteServName, "output")
+    endif
+  catch
+    let v:errmsg = substitute(v:exception, '^[^:]\+:', '', '')
+    call s:ShowRemoteError(v:exception, s:remoteServName)
+  endtry
+endfunction " }}}
+
 function! s:WaitForDbgPrompt() " Throws remote exceptions. {{{
   sleep 100m " Minimum time.
   try
@@ -1562,9 +1639,19 @@ function! s:ShowRemoteContext() " {{{
   let context = s:GetRemoteContext()
   if context != ''
     let [mode, name, lineNo] = ParseContext(context)
+    call s:LoadBacktraceInfo()
+    for trace in b:traceInfo
+      if trace.current
+        let name = trace.function
+        let lineNo = trace.line
+        let mode = g:breakpts#BM_FUNCTION
+        break
+      endif
+    endfor
     if name != ''
       let currentBufNr = bufwinnr("%")
       if name != s:GetListingName()
+        let s:brkpts_locals.loaded = 0
         call s:Browser(0, mode, '', name)
       endif
       let s:curLineInCntxt = lineNo
