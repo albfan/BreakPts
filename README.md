@@ -40,7 +40,7 @@ Terminal 2:
     :BPDEvaluate or F8 (evaluate word under cursor, if pressed on visual selection evaluates selection)
     :BPDCont or F5 (continue execution)
 
-See some plugins are loaded dinamically so you need to operate with them prior to set breakpoints.
+See some plugins are loaded dynamically so you need to operate with them prior to set breakpoints.
 
 Once loaded you can set breakpoints from connected vim with:
 
