@@ -103,6 +103,7 @@ loaded_breakpts variable in your vimrc.
 
 ==============================================================================
 
+                                            *:BreakPts*
                                             *breakpts-usage*
                                             *breakpts-navigation*
 To use the plugin, start with the :BreakPts command to open a window with a
@@ -118,11 +119,14 @@ use your mouse to double-click.
 The :BreakPts command can take an option for you to specify what listing to
 display in the Breakpts window. The available options are:
 
-        Option  Description~
-        +f      Show list of functions currently defined by all scripts (the
-                default).
-        +s      Show list of scripts currently loaded
-        +b      Show list of breakpoints currently defined.
+        Option            Description~
+        +f,functions      Show list of functions currently defined by all 
+                          scripts (the default).
+        +s,scripts        Show list of scripts currently loaded
+        +b,breakpoints    Show list of breakpoints currently defined.
+
+If you specify any other option, it will try to start :BPRemoteServ with that
+name
 
 To open the window with a list of scripts, you can type: >
 

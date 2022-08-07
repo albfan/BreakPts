@@ -74,7 +74,15 @@ set cpo&vim
 
 " Initialization {{{
 
-command! -nargs=? BreakPts :call breakpts#BrowserMain(<f-args>)
+function! ServerListComplete(ArgLead,CmdLine,CursorPos)
+    let servernames = split(serverlist())
+    if a:ArgLead != ""
+      call filter(servernames, 'v:val =~ "'.a:ArgLead.'"')
+    endif
+    return join(servernames, "\n")
+endfunction
+
+command! -nargs=? -complete=custom,ServerListComplete BreakPts :call breakpts#BrowserMain(<f-args>)
 nnoremap <script> <silent> <Plug>BreakPts :BreakPts<cr>
 command! -nargs=0 BreakPtsSetupBuf :call breakpts#SetupBuf()
 command! -nargs=1 BreakPtsSave :call breakpts#SaveBrkPts(<f-args>)

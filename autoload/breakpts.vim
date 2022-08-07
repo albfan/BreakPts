@@ -412,18 +412,27 @@ function! breakpts#BrowserMain(...) " {{{
     endif
   endif
 
+  let browserMode = ''
+  let remoteServer = ''
   if a:0 > 0
-    let browserMode = ''
     if a:1 =~ '^+f\%[unction]$'
       let browserMode = g:breakpts#BM_FUNCTIONS
     elseif a:1 =~ '^+s\%[cripts]$'
       let browserMode = g:breakpts#BM_SCRIPTS
     elseif a:1 =~ '^+b\%[reakpts]$'
       let browserMode = g:breakpts#BM_BRKPTS
+    else
+      let remoteServer = a:1
     endif
+  endif
+
+  if browserMode != ''
     call s:Browser(1, browserMode, '', '')
   else
     call breakpts#BrowserRefresh(0)
+    if remoteServer != ''
+      call <SID>SetRemoteServer(remoteServer)
+    endif
   endif
 
 endfunction " }}}
@@ -1167,14 +1176,6 @@ function! s:SetupBuf(full)
   exec 'command! -buffer BPPoints :call <SID>Browser(0,
         \ "' . g:breakpts#BM_BRKPTS . '", "", "")'
   command! -buffer -nargs=? -complete=custom,ServerListComplete BPRemoteServ :call <SID>SetRemoteServer(<f-args>)
-  function! ServerListComplete(ArgLead,CmdLine,CursorPos)
-      let servernames = split(serverlist())
-      if a:ArgLead != ""
-        call filter(servernames, 'v:val =~ "'.a:ArgLead.'"')
-      endif
-      return join(servernames, "\n")
-  endfunction
-
   command! -buffer BPBack :call <SID>NavigateBack()
   command! -buffer BPForward :call <SID>NavigateForward()
   command! -buffer BPSelect :call <SID>DoAction()
