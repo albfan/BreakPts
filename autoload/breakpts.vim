@@ -637,8 +637,26 @@ function! s:DoAction() " {{{
     if curScript != '' && curScriptId != ''
       call s:OpenListing(0, g:breakpts#BM_SCRIPT, curScriptId, curScript)
     endif
-  elseif browserMode == g:breakpts#BM_FUNCTION ||
-        \ browserMode == g:breakpts#BM_FUNCTIONS
+  elseif browserMode == g:breakpts#BM_FUNCTION
+    let curFunc = s:EvaluateSelection(1)
+    if curFunc != ''
+      let scrPrefix = matchstr(curFunc, '^\%(s:\|<SID>\)')
+      if scrPrefix != ''
+        let curSID = s:GetListingId()
+        let curFunc = strpart(curFunc, strlen(scrPrefix))
+        if curSID == ""
+          let curSID = s:SearchForSID(curFunc)
+        endif
+        if curSID == ""
+          echohl ERROR | echo "Sorry, SID couldn't be determined!!!" |
+                \ echohl NONE
+          return
+        endif
+        let curFunc = '<SNR>' . curSID . '_' . curFunc
+      endif
+      call s:OpenListing(0, g:breakpts#BM_FUNCTION, '', curFunc)
+    endif
+  elseif browserMode == g:breakpts#BM_FUNCTIONS
         \ || browserMode == g:breakpts#BM_SCRIPT
     let curFunc = s:GetFuncName()
     if curFunc != ''
@@ -1199,7 +1217,7 @@ function! s:SetupBuf(full)
   command! -buffer -nargs=? -complete=custom,ServerListComplete BPRemoteServ :call <SID>SetRemoteServer(<f-args>)
   command! -buffer BPBack :call <SID>NavigateBack()
   command! -buffer BPForward :call <SID>NavigateForward()
-  command! -buffer BPSelect :call <SID>DoAction()
+  command! -buffer -range BPSelect :call <SID>DoAction()
   command! -buffer BPOpen :call <SID>Open()
   command! -buffer BPToggle :call <SID>ToggleBreakPoint()
   command! -buffer BPRefresh :call breakpts#BrowserRefresh(0)
@@ -1217,6 +1235,7 @@ function! s:SetupBuf(full)
   nnoremap <silent> <buffer> <BS> :BPBack<CR>
   nnoremap <silent> <buffer> <Tab> :BPForward<CR>
   nnoremap <silent> <buffer> <CR> :BPSelect<CR>
+  xnoremap <silent> <buffer> <CR> :BPSelect<CR>
   nnoremap <silent> <buffer> o :BPOpen<CR>
   nnoremap <silent> <buffer> <2-LeftMouse> :BPSelect<CR>
   nnoremap <silent> <buffer> <F9> :BPToggle<CR>
