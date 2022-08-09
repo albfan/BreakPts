@@ -399,7 +399,14 @@ final modification of expression.
 
                                             *BPDLocals*
 On remote debugging shows variables, arguments and evaluated expressions. 
-Use `<+>`/<`->` upon desired variable to zoom in/out.
+
+Shortcuts on variables:
+
+     `+`/`-` to show/hide nested levels, like list or dicts.
+
+Shortcuts on expression variables:
+
+     `Supr` to remove added expressions with :|BPDEvaluate|
 
                                             *BPDBacktrace*
 On remote debugging show call stack to debugging point. Press <Enter> to go

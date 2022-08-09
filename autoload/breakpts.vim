@@ -194,6 +194,7 @@ function! s:PrintLocals()
   map <buffer> <silent> <Enter> :call ToggleFold()<CR>
   map <buffer> <silent> + :call IncreaseVariableLevel()<CR>
   map <buffer> <silent> - :call DecreaseVariableLevel()<CR>
+  map <buffer> <silent> <Del> :call RemoveVariable()<CR>
 endfunction
 
 function! IncreaseVariableLevel()
@@ -202,6 +203,26 @@ endfunction
 
 function! DecreaseVariableLevel()
   call ChangeLevel(-1)
+endfunction
+
+function! RemoveVariable()
+  let line = line(".")
+  let group = s:brkpts_locals.expressions
+  if group.line < line
+    if !group.isFolded
+      let pos = 0
+      for variable in group.variables
+        if variable.line == line
+          call remove(s:brkpts_locals.expressions.variables, pos)
+          call <SID>PrintLocals()
+          execute 'normal ' . line . 'G'
+          normal zz
+          return
+        endif
+        let pos += 1
+      endfor
+    endif
+  endif
 endfunction
 
 function! ChangeLevel(incr)
